@@ -1,0 +1,410 @@
+<div>
+    <form-wizard :next-button-text="'Continue →'" :back-button-text="'← Back'" :finish-button-text="'Create Listing'"
+        @on-complete="handleFormSubmission" enctype="multipart/form-data" color="#000" id="productForm" @on-change="handleTabChange"
+        autocomplete="off" ref="add-product-form">
+        <b-row class="mb-4">
+            <b-button size="sm" variant="primary" class="mr-1"
+                @click="routeBack"><i class="fa fa-chevron-left" ></i></b-button>
+        </b-row>
+        <tab-content title="Details" :before-change="() => validateStep(1)">
+            <h3 class="mb-5 text-center">Listing Details</h3>
+
+            <b-row class="mx-auto" v-if="hasPermission('can_product_view_title')">
+                <b-col sm="10" class="p-0">
+                    <b-form-group label="Title" required label-for="product_title">
+                        <b-form-input
+                        id="product_title"
+                        :value="productData.title"
+                        @input="(value) => { updateProductTitle(value); clearError('title'); }"
+                        required
+                        ></b-form-input>
+                        <em class="text-danger">%%addEditProductErrors.title %%</em>
+                    </b-form-group>
+                </b-col>
+            </b-row>
+
+            <b-row
+                class="mx-auto"
+                v-if="hasPermission('can_product_view_description')"
+            >
+                <b-col sm="10" class="p-0">
+                    <b-form-group label="Description" class="" label-for="description">
+                        <b-form-textarea
+                            id="description"
+                            @input="(value) => { updateProductDescription(value); clearError('description'); }"
+                            v-html="productData.description"
+                            required
+                        ></b-form-textarea>
+                        <em class="text-danger">%%addEditProductErrors.description %%</em>
+                    </b-form-group>
+                </b-col>
+            </b-row>
+
+            <b-row class="mx-auto" v-if="hasPermission('can_product_view_category')">
+                <b-col sm="10" class="p-0">
+                    <b-form-group label="Category" class="" label-for="Category">
+                        <b-form-select :value="productData && productData.category" @input="updateProductCategory"
+                            :options="categoryOptions" placeholder="Category" required>
+                        </b-form-select>
+
+                    </b-form-group>
+                </b-col>
+            </b-row>
+
+            <b-row class="mx-auto">
+                <b-col sm="10" class="p-0">
+                    <b-row class="mx-auto">
+                        <b-col sm="6" class="p-0 pr-2" v-if="hasPermission('can_product_view_price')">
+                            <b-form-group label="Price" label-for="Price">
+                                <template #label>
+                                    <label>Price</label>
+                                </template>
+                                <b-input-group>
+                                    <template #append>
+                                        <b-input-group-text>
+                                            <strong class="currency_font">%%userData &&
+                                                (userData.default_shop
+                                                ? userData.default_shop.currency_country
+                                                ? userData.default_shop.currency_country.currency_symbol
+                                                : userData.default_shop.currency
+                                                : ' ')
+                                            %%</strong>
+                                        </b-input-group-text>
+                                    </template>
+                                    <b-form-input
+                                        id="Price"
+                                        type="number"
+                                        :value="productData.price"
+                                        @input="(value) => { updateProductPrice(value); clearError('price'); }"
+                                        required
+                                    ></b-form-input>
+                                </b-input-group>
+                                <em class="text-danger">%%addEditProductErrors.price %%</em>
+                            </b-form-group>
+                        </b-col>
+                        <b-col sm="6" class="p-0 pl-2">
+                            <b-form-group label="Quantity" label-for="Quantity">
+                                <template #label>
+                                    <label>Quantity</label>
+                                </template>
+                                <b-form-input id="Quantity" type="number" :value="productData && productData.quantity"
+                                    @input="(value) => { updateProductQuantity(value); clearError('quantity'); }" required></b-form-input>
+                                    <em class="text-danger">%%addEditProductErrors.quantity %%</em>
+                            </b-form-group>
+                        </b-col>
+                    </b-row>
+                </b-col>
+            </b-row>
+
+            <b-row
+                class="mx-auto"
+                v-if="moduleItem && moduleItem.product_rental_appointment === 'true'"
+            >
+                <b-col sm="5" class="p-0">
+                <b-form-group label="Booking Type" class="" label-for="BookingType">
+                    <b-form-select
+                        :value="productData && productData.rental_rule_id"
+                        @input="updateProductBookingType"
+                        :options="bookingTypeOptions"
+                        placeholder="Select Booking Type"
+                    >
+                    </b-form-select>
+                    </b-form-group>
+                </b-col>
+            </b-row>
+
+            <b-row class="mx-auto" v-if="hasPermission('can_product_view_media')">
+                <b-col sm="10">
+                    <b-row class="mx-auto">
+                        <b-col sm="6" class="mt-4">
+                            <div class="customdropzone mb-4">
+                                <label>Media</label>
+                                <div class="dropzone-box" v-if="!loading">
+                                    <vue-dropzone @vdropzone-mounted="prePopulateFIle"
+                                        @vdropzone-removed-file="imageRemoved" 
+                                        @vdropzone-file-added="(file) => { fileAdded(file); clearError('image'); }"
+                                        v-on:vdropzone-error="errorEvent"
+                                        v-on:vdropzone-complete="imageUploadInProgress(false)"
+                                        v-on:vdropzone-processing="imageUploadInProgress(true)"
+                                        v-on:vdropzone-success="successEvent"
+                                        v-on:vdropzone-queue-complete="uploadComplete" :useCustomSlot=true
+                                        useCustomDropzoneOptions id="product" :options="dropzoneOptions"
+                                        ref="productDropzone">
+                                        <div class="dropzone-custom-content">
+                                            <i class="simple-icon-cloud-upload"></i>
+                                            <h3 class="dropzone-custom-title">Drag and drop to upload content!</h3>
+                                            <div class="subtitle">...or click to select a file from your computer</div>
+                                        </div>
+                                    </vue-dropzone>
+                                </div>
+                            </div>
+                            <em class="text-danger">%%addEditProductErrors.image %%</em>
+                        </b-col>
+                    </b-row>
+                </b-col>
+
+            </b-row>
+            <b-row class="mx-auto" v-if="!storeSellsOnlyPhysicalProduct && !storeSellsOnlyDigitalProduct">
+                <b-col sm="10" class="p-0 ml-3">
+                    <b-checkbox v-model="productData.requires_shipping">This is a Physical Product</b-checkbox>
+                </b-col>
+            </b-row>
+        </tab-content>
+
+        <!-- Step 2:  -->
+        <tab-content title="Delivery" :before-change="() => validateStep(2)">
+            <h3 class="mb-5 text-center">Set Dimensions & Weight</h3>
+            <b-row class="mx-auto" v-if="hasPermission('can_product_view_weight_dimension')">
+                <b-colxx sm="10">
+                    <div>
+                        <label for="range-1">Dimensions (%%userData && userData.default_shop && userData.default_shop.dimension_unit %%)</label>
+                    </div>
+                    <b-row class="mx-auto">
+                        <b-col sm="4" class="p-1 m-0 mb-2">
+                            <b-form-input type="number" :value="productData && productData.length" name="length"
+                                @input="(value) => { updateProductDimension(value, 'length'); clearError('length'); }" 
+                                @blur="(event) => formatProductDimension(event, 'length')" placeholder="Length"></b-form-input>
+                        </b-col>
+                        <b-col sm="4" class="p-1 m-0 mb-2">
+                            <b-form-input type="number" :value="productData && productData.width" name="width"
+                                @input="(value) => { updateProductDimension(value, 'width'); clearError('width'); }"
+                                @blur="(event) => formatProductDimension(event, 'width')" class="mr-1 m-0" placeholder="Width"></b-form-input>
+                        </b-col>
+                        <b-col sm="4" class="p-1 m-0 mb-2">
+                            <b-form-input type="number" :value="productData && productData.height" name="height"
+                                @input="(value) => { updateProductDimension(value, 'height'); clearError('height'); }" 
+                                @blur="(event) => formatProductDimension(event, 'height')" class="mr-1 m-0" placeholder="Height"></b-form-input>
+                        </b-col>
+                        <b-col sm="4" class="p-1 m-0 mb-2">
+                            <b-form-input id="Weight" type="number" :value="productData && productData.weight"
+                                @input="(value) => { updateProductDimension(value, 'weight'); clearError('weight'); }"
+                                @blur="(event) => formatProductDimension(event, 'weight')"
+                                :placeholder="'Weight (' + (userData && userData.default_shop.weight_unit) + ')'"></b-form-input>
+                        </b-col>
+                    </b-row>
+                </b-colxx>
+            </b-row>
+        </tab-content>
+
+        <!-- Step 3:  -->
+        <tab-content title="Additional Details" :before-change="() => validateStep(3)">
+            <h3 class="mb-5 text-center">Additional Details</h3>
+            <p class="mb-5 text-muted text-center">These details will help the merchant know your product better!</p>
+            <b-row v-if="hasPermission('can_product_view_meta_data') &&userSelectedCustomFields.length > 0" class="mx-auto">
+                <b-col sm="12">
+                    <b-row class="mx-auto">
+                        <b-col sm="3" class="p-0 mr-4" v-for="item in userSelectedCustomFields " :key="item.id">
+                            <b-form-group :label="item.field_name" :label-for="item.field_name"
+                                v-if="item.attributes.type === 'text'">
+                                <template #label>
+                                    <label>
+                                            %%item.field_name %%
+                                        </label>
+                                </template>
+                                <b-form-input :id="item.field_name" type="text" :value="metaData[item.name_slug]?.value"
+                                    @input="(value) => { customFieldChanged(value, item); clearError(item.name_slug); }">
+                                </b-form-input>
+                                <em class="text-danger">%%addEditProductErrors[item.name_slug] %%</em>
+                            </b-form-group>
+                            <b-form-group :label="item.field_name" :label-for="item.field_name"
+                                v-else-if="item.attributes.type === 'link'">
+                                <template #label>
+                                    <label>
+                                            %%item.field_name %%
+                                        </label>
+                                </template>
+                                <b-form-input :id="item.field_name" type="text" :value="metaData[item.name_slug]?.value"
+                                    @input="(value) => { customFieldChanged(value, item); clearError(item.name_slug); }"></b-form-input>
+                                <em class="text-danger">%%addEditProductErrors[item.name_slug] %%</em>
+                            </b-form-group>
+                            <div v-if="item.attributes.type === 'images' || item.attributes.type === 'file'">
+                                <b-form-group>
+                                    <template #label>
+                                        <label>
+                                                %%item.field_name %%
+                                            </label>
+                                    </template>
+                                    <i class="text-muted text-small">Note: maximum file size limit is 2mb</i>
+                                    <vue-dropzone @vdropzone-removed-file="metaFieldFileRemoved($event, item)"
+                                        @vdropzone-file-added="(file) => { metaFieldFileAdded(file, item); clearError(item.name_slug); }"
+                                        v-on:vdropzone-error="errorEvent" v-on:vdropzone-success="metaFieldSuccessEvent"
+                                        @vdropzone-mounted="metaFieldPrepopulateFile(item)"
+                                        v-on:vdropzone-queue-complete="uploadComplete" :useCustomSlot=true
+                                        useCustomDropzoneOptions id="metafield" :options="metaFieldDropZoneOptions"
+                                        :ref="'metafieldDropzone_' + item.field_name">
+                                        <div class="dropzone-custom-content">
+                                            <i class="simple-icon-cloud-upload"></i>
+                                            <h3 class="dropzone-custom-title">Drag and drop to upload content!</h3>
+                                            <div class="subtitle">...or click to select a file from your computer</div>
+                                        </div>
+                                    </vue-dropzone>
+                                </b-form-group>
+                                <em class="text-danger">%%addEditProductErrors[item.name_slug] %%</em>
+                            </div>
+                            <div v-if="item.attributes.type === 'single_line_text_field' && item.attributes.options">
+                                <b-form-group :label="item.field_name">
+                                    <template #label>
+                                        <label>
+                                        %%item.field_name %%
+                                            </label>
+                                    </template>
+                                    <b-form-select class="metfield-drop-down" :value="metaData[item.name_slug]?.value"
+                                        :options="item.attributes.options" @input="(value) => { customFieldChanged(value, item); clearError(item.name_slug); }">
+                                    </b-form-select>
+                                    <em class="text-danger">%%addEditProductErrors[item.name_slug] %%</em>
+                                </b-form-group>
+                            </div>
+                            <div v-else-if="item.attributes.type === 'single_line_text_field'">
+                                <b-form-group :label="item.field_name">
+                                    <template #label>
+                                        <label>
+                                           %%item.field_name %%
+                                            </label>
+                                    </template>
+                                    <b-form-input :value="metaData[item.name_slug]?.value"
+                                        @input="(value) => { customFieldChanged(value, item); clearError(item.name_slug); }"></b-form-input>
+                                    <em class="text-danger">%%addEditProductErrors[item.name_slug] %%</em>
+                                </b-form-group>
+                            </div>
+                            <div v-if="item.attributes.type === 'multi_line_text_field'">
+                                <b-form-group :label="item.field_name">
+                                    <template #label>
+                                        <label>
+                                                %%item.field_name %%
+                                            </label>
+                                    </template>
+                                    <b-form-textarea no-resize rows="6" max-rows="6"
+                                        :value="metaData[item.name_slug]?.value"
+                                        @input="(value) => { customFieldChanged(value, item); clearError(item.name_slug); }" />
+                                    <em class="text-danger">%%addEditProductErrors[item.name_slug] %%</em>
+                                </b-form-group>
+                            </div>
+                            <div v-if="item.field_name === 'url'">
+                                <b-form-group :label="item.field_name">
+                                    <template #label>
+                                        <label>
+                                                %%item.field_name %%
+                                            </label>
+                                    </template>
+                                    <b-form-input @input="(value) => { customFieldChanged(value, item); clearError(item.name_slug); }">
+                                    </b-form-input>
+                                    <em class="text-danger">%%addEditProductErrors[item.name_slug] %%</em>
+                                </b-form-group>
+                            </div>
+                            <div v-if="item.attributes.type === 'boolean'">
+                                <b-form-group>
+                                    <template #label>
+                                        <label class="p-0 m-0">
+                                                %% item.field_name %%  <span class="mr-1">(Boolean)</span>
+                                            </label>
+                                    </template>
+                                    <b-form-checkbox @input="(value) => { customFieldChanged(value, item); clearError(item.name_slug); }"
+                                        :checked="metaData[item.name_slug]?.value" switch />
+                                    <em class="text-danger">%%addEditProductErrors[item.name_slug] %%</em>
+                                </b-form-group>
+                            </div>
+                            <div v-if="item.attributes.type === 'color'">
+                                <b-form-group>
+                                    <template #label>
+                                        <label class="p-0 m-0">
+                                                %% item.field_name %%  <span class="mr-1">(Color)</span>
+                                            </label>
+                                    </template>
+                                    <v-swatches :value="metaData[item.name_slug]?.value"
+                                        @input="(color) => { customFieldChanged(color, item); clearError(item.name_slug); }" show-fallback></v-swatches>
+                                    <em class="text-danger">%%addEditProductErrors[item.name_slug] %%</em>
+                                </b-form-group>
+                            </div>
+                            <div v-if="item.attributes.type === 'dimension'">
+                                <b-form-group>
+                                    <template #label>
+                                        <label class="p-0 m-0">
+                                            %% item.field_name %% <span>(Dimensions)</span>
+                                        </label>
+                                    </template>
+                                    <b-input-group>
+                                        <template #append>
+                                            <b-form-select
+                                                :value="metaData[item.name_slug]?.value && JSON.parse(metaData[item.name_slug]?.value)?.unit"
+                                                :options="dimensionsOptions"
+                                                @change="(value) => { customFieldChanged(value, {...item, isDimensionUnit: true}); clearError(item.name_slug); }">
+                                            </b-form-select>
+                                        </template>
+                                        <b-form-input type="number"
+                                            :value="metaData[item.name_slug]?.value && JSON.parse(metaData[item.name_slug]?.value)?.value"
+                                            @change="(value) => { customFieldChanged(value, {...item, isDimensionValue: true}); clearError(item.name_slug); }"></b-form-input>
+                                    </b-input-group>
+                                    <em class="text-danger">%%addEditProductErrors[item.name_slug] %%</em>
+                                </b-form-group>
+                            </div>
+                            <div v-if="item.attributes.type === 'list.single_line_text_field' && item.attributes.options">
+                                <b-form-group>
+                                    <template #label>
+                                        <label class="p-0 m-0">
+                                            %% item.field_name %% <span class="mr-1">(Multi-select)</span>
+                                        </label>
+                                    </template>
+                                    <div class="custom-multi-select"
+                                        v-if="metaData[item.name_slug] && metaData[item.name_slug].value">
+                                        <b-form-checkbox-group 
+                                            v-model="metaData[item.name_slug].value" 
+                                            stacked
+                                            @input="(value) => { customFieldChanged(value, item); clearError(item.name_slug); }"
+                                            :options="getOptions(item.attributes.options)" 
+                                            value-field="value"
+                                            text-field="text" 
+                                        />
+                                    </div>
+                                    <div class="custom-multi-select" v-else>
+                                        <b-form-checkbox-group 
+                                            stacked 
+                                            @input="(value) => { customFieldChanged(value, item); clearError(item.name_slug); }"
+                                            :options="getOptions(item.attributes.options)" 
+                                            value-field="value"
+                                            text-field="text" 
+                                        />
+                                    </div>
+                                    <em class="text-danger">%%addEditProductErrors[item.name_slug] %%</em>
+                                </b-form-group>
+                            </div>
+                            <div v-if="item.attributes.type === 'number_integer'">
+                                <b-form-group>
+                                    <template #label>
+                                        <label class="p-0 m-0">
+                                            %% item.field_name %%
+                                        </label>
+                                    </template>
+                                    <b-form-input type="number"
+                                        :value="metaData[item.name_slug]?.value"
+                                        @change="(value) => { customFieldChanged(value, item); clearError(item.name_slug); }"></b-form-input>
+                                    </b-form-group>
+                            </div>
+                        </b-col>
+                    </b-row>
+                </b-col>
+            </b-row>
+            <b-row v-else class="mx-auto mt-3">
+                <b-col sm="12">
+                    <p>No additional details required</p>
+                </b-col>
+            </b-row>
+        </tab-content>
+        <!-- Step 4: -->
+        <tab-content title="Merchant & Vendor Remarks">
+            <b-row class="mx-auto">
+                <b-colxx class="col-sm-10">
+                    <b-form-group>
+                        <template #label>
+                            <label>
+                                    Merchant and Vendor Remarks
+                                </label>
+                        </template>
+                        <b-form-textarea rows="6" max-rows="6" placeholder="Merchant & Vendor Remarks"
+                            :value="plainMerchantComments"
+                            @change="(value) => {productData.merchant_comments = value}"></b-form-textarea>
+                    </b-form-group>
+                </b-colxx>
+            </b-row>
+        </tab-content>
+    </form-wizard>
+</div>

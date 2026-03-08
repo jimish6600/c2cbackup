@@ -1,0 +1,206 @@
+<b-container fluid class="booking">
+    <b-overlay rounded="sm" variant="light" opacity="0.6">
+        <b-card class="page-container">
+            <!-- Breadcrumb Replacement -->
+            <div class="d-flex align-items-center justify-content-between">
+                <b-button variant="primary" class="d-flex align-items-center text-white" @click="openPage('Booking')">
+                    <b-icon icon="arrow-left-circle" class="mr-1"></b-icon>
+                    Back
+                </b-button>
+                <h3 v-if="isForAddBookingType" class="text-capitalize mb-0">Add Booking Type</h3>
+                <h3 v-else class="text-capitalize mb-0">Edit Booking Type</h3>
+            </div>
+            <hr />
+
+            <!-- Booking Type Toggle -->
+            <b-row class="mx-auto">
+                <b-col class="d-flex align-items-center">
+                    <b-form-group label="Booking Type" class="bold">
+                        <b-form-radio-group v-model="formBookingType.booking_type" name="booking" class="ml-2">
+                            <b-form-radio value="rental" class="mr-3">Rental</b-form-radio>
+                            <b-form-radio value="appointment" class="mr-5">Appointment</b-form-radio>
+                        </b-form-radio-group>
+                    </b-form-group>
+                </b-col>
+            </b-row>
+
+            <!-- Title Input -->
+            <b-row class="mt-3 mx-auto">
+                <b-col md="3">
+                    <b-form-group label="Title" class="bold ml-0" label-class="m-0 p-0 booking-type-font-size">
+                        <b-form-input v-model="formBookingType.rule_name" type="text" placeholder="Enter Title" />
+                    </b-form-group>
+                </b-col>
+            </b-row>
+
+            <!-- Main Form Section -->
+            <b-row class="mx-auto">
+                <b-col md="9" class="py-3 ml-0 gray-background">
+                    <b-row class="mx-auto">
+                        <!-- No of Bookings (Qty) Per Slot -->
+                        <b-col md="4">
+                            <b-form-group class="bold mr-3" label-class="m-0 p-0 booking-type-font-size">
+                                <template #label>
+                                    <div class="d-flex align-items-center">
+                                        No of Bookings (Qty) Per Slot
+                                        <span class="ml-1 text-primary" title="Capacity description">
+                                            <i class="bi bi-question-circle" />
+                                        </span>
+                                    </div>
+                                </template>
+                                <b-form-input v-model.number="formBookingType.maximum_quantity" type="number" placeholder="Enter Capacity" min="0" />
+                            </b-form-group>
+                        </b-col>
+
+                        <!-- Duration of a Slot -->
+                        <b-col md="4">
+                            <b-form-group class="bold mr-3" label-class="m-0 p-0 booking-type-font-size">
+                                <template #label>
+                                    <div class="d-flex align-items-center">
+                                        Duration of a Slot
+                                        <span class="ml-1 text-primary" title="Duration description">
+                                            <i class="bi bi-question-circle" />
+                                        </span>
+                                    </div>
+                                </template>
+                                <b-input-group>
+                                    <template #append>
+                                        <b-dropdown size="xs" :text="formBookingType.fixed_booking_time_duration.format" variant="primary" class="custom-dropdown-font">
+                                            <b-dropdown-item @click="formBookingType.fixed_booking_time_duration.format = 'Minutes'">Minutes</b-dropdown-item>
+                                            <b-dropdown-item @click="formBookingType.fixed_booking_time_duration.format = 'Hour'">Hour</b-dropdown-item>
+                                            <b-dropdown-item @click="formBookingType.fixed_booking_time_duration.format = 'Days'">Days</b-dropdown-item>
+                                        </b-dropdown>
+                                    </template>
+                                    <b-form-input v-model.number="formBookingType.fixed_booking_time_duration.time" type="number" placeholder="Enter Duration" min="0" />
+                                </b-input-group>
+                            </b-form-group>
+                        </b-col>
+
+                        <!-- Break Time Before Next Slot -->
+                        <b-col md="4">
+                            <b-form-group class="bold ml-0" label-class="m-0 p-0 booking-type-font-size">
+                                <template #label>
+                                    <div class="d-flex align-items-center">
+                                        Break Time Before Next Slot
+                                        <span class="ml-1 text-primary" title="Lag time description">
+                                            <i class="bi bi-question-circle" />
+                                        </span>
+                                    </div>
+                                </template>
+                                <b-input-group>
+                                    <template #append>
+                                        <b-dropdown size="xs" :text="formBookingType.lag_time.format" variant="primary" class="custom-dropdown-font">
+                                            <b-dropdown-item @click="formBookingType.lag_time.format = 'Minutes'">Minutes</b-dropdown-item>
+                                            <b-dropdown-item @click="formBookingType.lag_time.format = 'Hour'">Hour</b-dropdown-item>
+                                            <b-dropdown-item @click="formBookingType.lag_time.format = 'Days'">Days</b-dropdown-item>
+                                        </b-dropdown>
+                                    </template>
+                                    <b-form-input v-model.number="formBookingType.lag_time.time" type="number" placeholder="Enter Lag time" min="0" />
+                                </b-input-group>
+                            </b-form-group>
+                        </b-col>
+                    </b-row>
+
+                    <!-- Start and End Time -->
+                    <b-row v-if="formBookingType.booking_type != 'appointment'" class="mx-auto">
+                        <b-col md="4">
+                            <b-form-group label="Start Time" class="bold mr-3 ml-0" label-class="m-0 p-0 custom-timepicker-font">
+                                <b-timepicker v-model="formBookingType.available_date_range.start_time" hour12 class="custom-timepicker-font" />
+                            </b-form-group>
+                        </b-col>
+                        <b-col md="4">
+                            <b-form-group label="End Time" class="bold ml-0" label-class="m-0 p-0 booking-type-font-size">
+                                <b-timepicker v-model="formBookingType.available_date_range.end_time" hour12 class="custom-timepicker-font" />
+                            </b-form-group>
+                        </b-col>
+                    </b-row>
+
+                    <!-- Cut-off Days and Future Days -->
+                    <b-row class="mx-auto">
+                        <b-col md="4">
+                            <b-form-group class="bold mr-3" label-class="m-0 p-0 booking-type-font-size">
+                                <template #label>
+                                    <div class="d-flex align-items-center">
+                                        Slot Available After (Cut-off days)
+                                        <span class="ml-1 text-primary" title="First day (from today) that will be available in the date picker. Set to 0 for today, 1 for tomorrow etc.">
+                                            <i class="bi bi-question-circle" />
+                                        </span>
+                                    </div>
+                                </template>
+                                <b-input-group>
+                                    <template #append>
+                                        <b-dropdown size="xs" :text="formBookingType.date_picker.cutoff_days.format" variant="primary" class="custom-dropdown-font">
+                                            <b-dropdown-item @click="formBookingType.date_picker.cutoff_days.format = 'Minutes'">Minutes</b-dropdown-item>
+                                            <b-dropdown-item @click="formBookingType.date_picker.cutoff_days.format = 'Hour'">Hour</b-dropdown-item>
+                                            <b-dropdown-item @click="formBookingType.date_picker.cutoff_days.format = 'Days'">Days</b-dropdown-item>
+                                        </b-dropdown>
+                                    </template>
+                                    <b-form-input v-model.number="formBookingType.date_picker.cutoff_days.time" type="number" placeholder="Enter Slot Available After" min="0" :state="validateCutoffDaysBookingType" />
+                                </b-input-group>
+                                <b-form-invalid-feedback>Must be greater than or equal to 0</b-form-invalid-feedback>
+                            </b-form-group>
+                        </b-col>
+                        <b-col md="4">
+                            <b-form-group class="bold ml-0" label-class="m-0 p-0 booking-type-font-size">
+                                <template #label>
+                                    <div class="d-flex align-items-center">
+                                        Max Available Booking Dates (Future days)
+                                        <span class="ml-1 text-primary" title="Maximum number of days to allow from today. Must be greater than or equal to Cutoff Days.">
+                                            <i class="bi bi-question-circle" />
+                                        </span>
+                                    </div>
+                                </template>
+                                <b-form-input v-model.number="formBookingType.date_picker.future_days" type="number" placeholder="Enter Max Available Booking Dates" min="0" :state="validateFutureDaysBookingType" />
+                                <b-form-invalid-feedback>Must be greater than or equal to Cutoff Days</b-form-invalid-feedback>
+                            </b-form-group>
+                        </b-col>
+                    </b-row>
+                </b-col>
+            </b-row>
+
+            <!-- Operating Hours Section -->
+            <b-row class="mt-2 mx-auto" v-if="formBookingType.booking_type == 'appointment'">
+                <b-col md="9" class="gray-background p-3 ml-3">
+                    <h4 class="bold ml-0">Operating Hours</h4>
+                    <b-row v-for="day in daysBookingType" :key="day" class="mb-2 d-flex justify-content-between align-items-center">
+                        <b-col md="2">
+                            <b-form-checkbox v-model="formBookingType.operating_hours[day].slot_status" :name="`slot_status_${day}`">
+                                %%day %%
+                            </b-form-checkbox>
+                        </b-col>
+                        <b-col md="5">
+                            <b-form-group label="From" class="mx-1">
+                                <b-timepicker v-model="formBookingType.operating_hours[day].from" :disabled="!formBookingType.operating_hours[day].slot_status" hour12 class="custom-timepicker-font" />
+                            </b-form-group>
+                        </b-col>
+                        <b-col md="5">
+                            <b-form-group label="To" class="mx-1">
+                                <b-timepicker v-model="formBookingType.operating_hours[day].to" :disabled="!formBookingType.operating_hours[day].slot_status" hour12 class="custom-timepicker-font" />
+                            </b-form-group>
+                        </b-col>
+                    </b-row>
+                </b-col>
+            </b-row>
+
+            <!-- Action Buttons -->
+            <b-row class="mx-auto">
+                <b-col md="9" class="d-flex justify-content-center mt-3" v-if="!isForAddBookingType">
+                    <b-button variant="primary" size="lg" class="mr-2" v-if="isUpdatingBookingType">
+                        <b-spinner small class="mr-1" role="status" aria-hidden="true" />
+                    </b-button>
+                    <b-button v-else variant="primary" size="lg" class="mr-2" @click="updateBookingType" :disabled="isUpdatingBookingType">
+                        Update
+                    </b-button>
+                </b-col>
+                <b-col md="9" class="d-flex justify-content-center mt-3" v-else>
+                    <b-button variant="primary" size="lg" v-if="isSavingBookingType">
+                        <b-spinner small class="mr-1" role="status" aria-hidden="true" />
+                    </b-button>
+                    <b-button v-else variant="primary" size="lg" @click="saveBookingType">
+                        Save
+                    </b-button>
+                </b-col>
+            </b-row>
+        </b-card>
+    </b-overlay>
+</b-container>

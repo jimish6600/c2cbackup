@@ -1,0 +1,223 @@
+<b-row class="mx-auto px-3">
+          <b-button size="sm" variant="primary" class=" top-left-button-container mr-1" @click="routeBack"><i class="fa fa-chevron-left" ></i></b-button>
+        </b-row>
+        <div v-if="loading" class="d-flex justify-content-center align-items-center">
+    <b-spinner type="grow" label="Spinning"></b-spinner>
+</div>
+<b-row v-else class=" d-flex align-items-center order_details_container">
+  <b-col lg="9" class="" align="left">
+    <div class="px-3">
+        <b-row class="p-4 align-items-center mx-auto">
+            <b-col sm="6" class="m-0" >
+              <h3 class="bold">#%%singleOrderData?.order_number %%</h3>
+            </b-col>
+            <b-col sm="6" class="d-flex justify-content-end align-items-center" align="right">
+              <div>
+                <b-button v-if="!singleOrderData?.awb_label && !singleOrderData?.generating_awb" @click="openAddTrackingModal" class="float-right mr-3  btn-styling" variant="primary">Add Tracking</b-button>
+                <b-button v-else @click="openAddTrackingModal" class="float-right mr-3 btn-styling" variant="primary">Edit Tracking</b-button>
+              </div>
+              <div>
+              <span v-if="order_status_change_loading === singleOrderData?.id" style="width: 1.5rem; height:1.5rem;" class="spinner-border spinner-border-sm ml-0" role="status" aria-hidden="true"></span>
+              <b-dropdown :id="'dropdown-' + singleOrderData.id" :text="singleOrderData.order_sequence_name" variant="primary" class="m-md-2 order_actions_container">
+                <b-dropdown-item @click="() => performOrderAction(singleOrderData.id, 'new-order')" class="status_new_order" :class="{ 'active': singleOrderData.order_sequence_name === 'New Orders' }">
+                  <span v-if="order_status_change_loading === singleOrderData.id" class="spinner-border spinner-border-sm ml-0" role="status" aria-hidden="true"></span>
+                  New Order
+                </b-dropdown-item>
+                
+                <b-dropdown-item @click="() => performOrderAction(singleOrderData.id, 'confirmed')" class="status_confirmed" :class="{ 'active': singleOrderData.order_sequence_name === 'Confirmed' }">
+                  <span v-if="order_status_change_loading === singleOrderData.id" class="spinner-border spinner-border-sm ml-0" role="status" aria-hidden="true"></span>
+                  Confirmed
+                </b-dropdown-item>
+
+                <b-dropdown-item @click="() => performOrderAction(singleOrderData.id, 'in-transit')" class="status_intransit" :class="{ 'active': singleOrderData.order_sequence_name === 'In Transit' }">
+                  <span v-if="order_status_change_loading === singleOrderData.id" class="spinner-border spinner-border-sm ml-0" role="status" aria-hidden="true"></span>
+                  In-transit
+                </b-dropdown-item>
+
+                <b-dropdown-item @click="() => performOrderAction(singleOrderData.id, 'delivered')" class="status_delivered" :class="{ 'active': singleOrderData.order_sequence_name === 'Delivered' }">
+                  <span v-if="order_status_change_loading === singleOrderData.id" class="spinner-border spinner-border-sm ml-0" role="status" aria-hidden="true"></span>
+                  Delivered
+                </b-dropdown-item>
+
+                <b-dropdown-item @click="() => performOrderAction(singleOrderData.id, 'cancelled')" class="status_cancelled" :class="{ 'active': singleOrderData.order_sequence_name === 'cancelled' }">
+                  <span v-if="order_status_change_loading === singleOrderData.id" class="spinner-border spinner-border-sm ml-0" role="status" aria-hidden="true"></span>
+                  Cancelled
+                </b-dropdown-item>
+
+                <b-dropdown-item @click="() => performOrderAction(singleOrderData.id, 'returned')" class="status_returned" :class="{ 'active': singleOrderData.order_sequence_name === 'RTO' }">
+                  <span v-if="order_status_change_loading === singleOrderData.id" class="spinner-border spinner-border-sm ml-0" role="status" aria-hidden="true"></span>
+                  Returned
+                </b-dropdown-item>
+
+              </b-dropdown>
+            </div>
+            </b-col>
+        </b-row> 
+        <b-card class="text-left p-3" title="">
+            <div class="mb-4">
+              <div class="text-bottom">
+                <div v-if="singleOrderData.generating_awb">
+                  Generating
+                  <span class="spinner-border spinner-border-sm ml-0"  role="status" aria-hidden="true"></span>
+                </div>
+                <div v-if="singleOrderData.awb_label || singleOrderData.generating_awb">
+                  <div v-if="singleOrderData.shipping_provider">
+                    <span class="text-uppercase">%%singleOrderData.shipping_provider %%</span><br/>
+                  </div>
+                  <div v-if="singleOrderData.awb_custom_courier_name">
+                    <span>%%singleOrderData.awb_custom_courier_name %%</span> <br/>
+                  </div>
+                  <div v-if="singleOrderData.awb !== null">
+                    <span  class="p-0 m-0"><a class="p-0 text-primary" size="xs" variant="link" target="_blank" :href="singleOrderData.tracking_link ? singleOrderData.tracking_link : '#'" tag="a">%%singleOrderData.awb %%</a></span><br />
+                  </div>
+                  <div v-else-if="singleOrderData.awb">
+                    <span  class="p-0 m-0">%%singleOrderData.awb %%</span><br />
+                  </div>
+                  
+                </div>
+              </div>
+              
+            </div>
+            <b-row class="d-none d-sm-flex mb-4 line_item_order_title_container only_visisble_on_desktop mx-auto">
+              <b-col lg="2" class=" d-flex">
+              </b-col>
+              <b-col lg="3" class=" d-flex">
+              </b-col>
+              <b-col lg="2" class=" d-flex">
+              </b-col>
+              <b-col class="d-flex justify-content-start">
+                Product Price
+              </b-col>
+              <b-col class="d-flex justify-content-start">
+                Your earnings
+              </b-col>
+            </b-row>
+            <div  v-for="(item, i) in singleOrderData.line_items" :key="item.id" class="text-center" >
+              <b-row class="mx-auto">
+                <b-col sm="12">
+                  <b-row class="align-items-center border-bottom mt-4 mx-auto">
+                    <b-col lg="2" class="mb-4">
+                       <img
+                            class="d-block"
+                            style="width: 150px !important; height: 100px; object-fit: contain;"
+                            :src="(item.variant && item.variant.image_link) ? item.variant.image_link : 'https://www.freeiconspng.com/thumbs/no-image-icon/no-image-icon-15.png'"
+                        >
+                    </b-col>
+                    <b-col sm="12" lg="3" class="mb-4">
+                      <div class="bold">%%item.title %%</div>
+                    </b-col>
+                    <b-col lg="3" class="">
+                      <div class="align-to-end-on-mobile"> %% currencySymbol %% %%item.o_line_total_value %% x %%item.billable_quantity %%</div>
+                    </b-col>
+                    <b-col lg="2" class="">
+                      <div class="d-flex justify-content-between"><span class="only_visisble_on_mobile">Product Price: </span> %% currencySymbol %% %%item.o_line_total_value %%</div>
+                    </b-col>
+                    <b-col lg="2" class="">
+                      <div class="d-flex justify-content-between">
+                        <span class="only_visisble_on_mobile">Your earnings: </span>
+                        <span>
+                          %% currencySymbol %%
+                              %% item.o_line_price  - ((singleOrderData.company.global_commission / 100 * item.o_line_price ) +  singleOrderData.company.global_fixed_commission)  %%
+                        </span>
+
+                      </div>
+                    </b-col>
+                  </b-row> 
+                </b-col>
+              </b-row> 
+            </div>
+          <div class=" mt-4 mb-4">
+            <div class="">
+                <b-row class="mx-auto">
+                  <b-col sm="2" class="d-flex col-lg-2">
+                  </b-col>
+                  <b-col sm="12" lg="3" class="text-center align-to-end-on-mobile">
+                    <div class="bold">Subtotal</div>
+                  </b-col>
+                  <b-col lg="3" class="d-flex  justify-content-center align-to-end-on-mobile">
+                    <div  class="mr-4">%%totalBillableQuantity %% items</div>
+                    <b-badge
+                      :variant="singleOrderData.payment_status == 'PP' ? 'success' : 'warning'"
+                      class="font-06 pl-4 pr-4 payment-status-badge"
+                    >
+                      %%singleOrderData.payment_status %%
+                    </b-badge>
+                  </b-col>
+                  
+                  <b-col lg="2" class="text-center">
+                    <div class="d-flex  justify-content-between"><span class="only_visisble_on_mobile">Product Total Price: </span>%% currencySymbol %% %%singleOrderData.total_price %%</div>
+                  </b-col>
+                  <b-col lg="2" class="text-center">
+                    <div class="d-flex  justify-content-between"><span class="only_visisble_on_mobile">Your Total earnings: </span> %% currencySymbol %% %%singleOrderData.subtotal_price %%</div>
+                  </b-col>
+                </b-row> 
+              </div>
+          </div>
+        </b-card>
+      
+    </div>
+  </b-col>
+  <b-col lg="3" class="customer_detail_container" align="left">
+    <div>
+      <b-card>
+        <b-card-title class="bold h4">
+          Customer Details
+        </b-card-title>
+          <b-card-text>
+          Customer Info
+        </b-card-text>
+        <b-card-sub-title>
+          <address v-if="singleOrderData.customer_address">
+            <p class="text-truncate p-0 m-0">
+              <span>
+                %%singleOrderData.customer_address.first_name%% %%singleOrderData.customer_address.last_name%% <br/>
+              </span>
+              <span>
+                %%singleOrderData.customer_address.email%% <br/>
+              </span>
+              <span >
+                %%singleOrderData.customer_address.phone%% <br/>
+              </span>
+            </p>
+          </address>
+        </b-card-sub-title>
+    
+          <b-card-text class="mt-4">
+          Shipping Address
+        </b-card-text>
+        <b-card-sub-title>
+          <div v-if="singleOrderData.shipping_address">
+              <span>
+              <span v-if="singleOrderData.shipping_address.address1">%%singleOrderData.shipping_address.address1%%<br></span>
+              <span v-if="singleOrderData.shipping_address.address2">%%singleOrderData.shipping_address.address2%% , <br></span>
+              <span v-if="singleOrderData.shipping_address.city"> %%singleOrderData.shipping_address.city%%, </span>
+              <span v-if="singleOrderData.shipping_address.province">  %%singleOrderData.shipping_address.province%% <br></span>
+              <span v-if="singleOrderData.shipping_address.country"> %%singleOrderData.shipping_address.country%% (%%singleOrderData.shipping_address.country_code%%)<br> </span>
+              <span v-if="singleOrderData.shipping_address.zip"> Zip Code/Pin Code: %%singleOrderData.shipping_address.zip%%<br></span>
+            </span>
+          </div>
+        </b-card-sub-title>
+      </b-card>
+    </div>
+  </b-col>
+</b-row>
+
+<b-modal ref="addTrackingModal" title="Add Tracking" hide-footer hide-backdrop header-class="border-primary" static-class="st-c2c-dashboard" static>
+  <b-form-group label="Shipping Carrier" label-for="shippingCarrier">
+    <b-form-input id="shippingCarrier" v-model="shippingCarrier" placeholder="Enter shipping carrier"></b-form-input>
+  </b-form-group>
+
+  <b-form-group label="Tracking Number" label-for="trackingNumber">
+    <b-form-input id="trackingNumber" v-model="trackingNumber" placeholder="Enter tracking number"></b-form-input>
+  </b-form-group>
+
+  <b-form-group label="Tracking Url" label-for="trackingUrl">
+    <b-form-input id="trackingUrl" v-model="trackingUrl" placeholder="Enter tracking url"></b-form-input>
+  </b-form-group>
+
+  <b-button variant="outline" size="md" @click="closeAddTrackingModal">
+    Cancel
+  </b-button>
+  <b-button  variant="primary" size="md" @click="saveTracking(singleOrderData.id)"><span v-if="save_tracking_loading" class="spinner-border spinner-border-sm ml-0" role="status" aria-hidden="true"></span>
+  Save</b-button>
+</b-modal>

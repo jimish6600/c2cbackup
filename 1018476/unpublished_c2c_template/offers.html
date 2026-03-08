@@ -1,0 +1,282 @@
+<div v-if="!isMobile" class="offers-table-container" @mouseover="isMouseOntheTable = true" @mouseout="isMouseOntheTable = false" :class="{'scrolling-offers': isMouseOntheTable }" style="max-height: 500px; overflow-y: auto;">
+    <table class="table offers-table">
+        <thead class="bg-transparent">
+            <th class="text-center"><p>%%currentLanguage['offers']['date'] %%</p></th>
+            <th class="text-center"><p>%%currentLanguage['offers']['item_title'] %%</p></th>
+            <th class="text-center"><p>%%currentLanguage['offers']['current_price'] %%</p></th>
+            <th class="text-center"><p>%%currentLanguage['offers']['offer_price'] %%</p></th>
+            <th class="text-center"><p>%%currentLanguage['offers']['requested_quantity'] %%</p></th>
+            <th class="text-center"><p>%%currentLanguage['offers']['offer_order_value'] %%</p></th>
+            <th class="text-center"><p>%%currentLanguage['offers']['counter_price'] %%</p></th>
+            <th class="text-center"><p>%%currentLanguage['offers']['counter_quantity'] %%</p></th>
+            <th class="text-center"><p>%%currentLanguage['offers']['counter_order_value'] %%</p></th>
+            <th class="text-center"><p>%%currentLanguage['offers']['customer'] %%</p></th>
+            <th class="text-center"><p>%%currentLanguage['offers']['action'] %%</p></th>
+        </thead>
+        <tbody>
+            <tr v-for="offer in offers" :key="offer.id">
+                <td class="text-center"><p>%%formatDate(offer.created_at) %%</p></td>
+                <td class="text-center"><p>%%offer.line_items[0].title %%</p></td>
+                <td class="text-center"><p>%%Number(offer.line_items[0].price).toFixed(2) %%</p></td>
+                <td class="text-center"><p>%%getOfferPrice(offer) %%</p></td>
+                <td class="text-center"><p>%%offer.line_items[0].quantity %%</p></td>
+                <td class="text-center"><p>%%getOfferOrderValue(offer) %%</p></td>
+                <td class="text-center">
+                    <span v-if="offer.counter_offer_price">%%offer.counter_offer_price%%</span>
+                    <span v-else>-</span>
+                </td>
+                <td class="text-center">
+                    <span v-if="offer.counter_offer_quantity">%%offer.counter_offer_quantity %%</span>
+                    <span v-else>-</span>
+                </td>
+                <td class="text-center">
+                    <span v-if="!isNaN(getCounterOfferOrderValue(offer)) && getCounterOfferOrderValue(offer) > 0">%%getCounterOfferOrderValue(offer) %%</span>
+                    <span v-else>-</span>
+                </td>
+                <td class="text-center">
+                    <span v-if="offer.customer.first_name !== null && offer.customer.last_name !== null" 
+                    v-html="offer.customer.first_name + ' ' + offer.customer.last_name"></span>
+                    <span v-else>-</span>
+                </td>
+                <td class="text-center">
+                    <div class="d-flex flex-column p-4" style="gap: 5px;">
+                        <div class="text-cap">
+                            <div v-if="(offer.draft_order_status === 'sent' || offer.draft_order_status === 'pending')">
+                                <b-badge variant="light">Pending</b-badge>
+                            </div>
+                            <div v-else-if="offer && offer.draft_order_status === 'approved'">
+                                <b-badge variant="success">%%offer.draft_order_status %%</b-badge>
+                            </div>
+                            <div v-else-if="offer && offer.draft_order_status === 'countered'">
+                                <b-badge variant="warning">%%offer.draft_order_status %%</b-badge>
+                            </div>
+                            <div v-else>
+                                <b-badge variant="danger">%%offer.draft_order_status %%</b-badge>
+                            </div>
+                        </div>
+                        <b-dropdown split class="text-primary" block variant="primary" :disabled="offerActionLoading || offer.draft_order_status != 'pending'">
+                            <template v-slot:button-content>
+                                Actions
+                            </template>
+                            <b-dropdown-item @click="confirmApproveOffer(offer)">
+                                <div class="d-flex align-items-center gap-1 text-success" style="font-size: 14px;">
+                                <b-icon icon="check" aria-hidden="true"></b-icon> %% currentLanguage['offers']['approve']  %%
+                                </div>
+                            </b-dropdown-item>
+                            <b-dropdown-item @click="confirmRejectOffer(offer)">
+                                <div class="d-flex align-items-center gap-1 text-danger" style="font-size: 14px;">
+                                    <b-icon icon="x" aria-hidden="true"></b-icon> %% currentLanguage['offers']['reject']  %%
+                                </div>
+                            </b-dropdown-item>
+                            <b-dropdown-item @click="showCounterOfferModal(offer)">
+                                <div class="d-flex align-items-center gap-1" style="font-size: 14px;">
+                                <b-icon icon="tag" aria-hidden="true"></b-icon> %% currentLanguage['offers']['counter']  %%
+                                </div>
+                            </b-dropdown-item>
+                        </b-dropdown>
+                    </div>
+                </td>
+            </tr>
+            <tr v-if="offers.length === 0 && !offersLoading">
+                <td colspan="12" class="text-center">No Offers</td>
+            </tr>
+            <tr v-if="!lastOffersPageShown">
+                <td style="border: none !important;" colspan="12">
+                    <div class="d-flex justify-content-center">
+                        <div v-if="offersCount > offersPerPage" ref="offersIntersectionObeserverTarget" style="display: block;"></div>
+                        <b-spinner v-if="offersLoading" type="grow" label="Spinning"></b-spinner>                
+                    </div> 
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div v-else class="mobile-view-offers-wrapper">
+    <div class="offer-grid-wrapper" v-for="offer in offers">
+        <div class="offer-grid">
+                <div class="text-cap">
+                    <h5 v-if="(offer.draft_order_status === 'sent' || offer.draft_order_status === 'pending')">
+                        <b-badge variant="light">%%currentLanguage['offers']['pending'] %%</b-badge>
+                    </h5>
+                    <h5 v-else-if="offer && offer.draft_order_status === 'approved'">
+                        <b-badge variant="success">%%currentLanguage['offers']['approved'] %%</b-badge>
+                    </h5>
+                    <h5 v-else-if="offer && offer.draft_order_status === 'countered'">
+                        <b-badge variant="warning">%%currentLanguage['offers']['countered'] %%</b-badge>
+                    </h5>
+                    <h5 v-else>
+                        <b-badge variant="danger">%%offer.draft_order_status %%</b-badge>
+                    </h5>
+                </div>
+                <div>
+                    <span class="bold">%%currentLanguage['offers']['date']%%:</span> %%formatDate(offer.created_at) %%
+                </div>
+                <div>
+                    <span class="bold">%%currentLanguage['offers']['title']%%:</span> %%offer.line_items[0].title %%
+                </div>
+                <div>
+                    <span class="bold">%%currentLanguage['offers']['price']%%:</span> %%Number(offer.line_items[0].price).toFixed(2) %%
+                </div>
+                <div>
+                    <span class="bold">%%currentLanguage['offers']['offer-price']%%:</span> %%getOfferPrice(offer) %%
+                </div>
+                <div>
+                    <span class="bold">%%currentLanguage['offers']['qty']%%:</span> %%offer.line_items[0].quantity %%
+                </div>
+                <div>
+                    <span class="bold">%%currentLanguage['offers']['offer-order-value']%%:</span> %%getOfferOrderValue(offer) %%
+                </div>
+                <div>
+                    <span class="bold">%%currentLanguage['offers']['customer']%%:</span> %%offer.customer.first_name && offer.customer.last_name ? offer.customer.first_name + ' ' + offer.customer.last_name : '-' %%
+                </div>
+                <div>
+                    <span class="bold" title="Counter Offer Price">%%currentLanguage['offers']['counter-offer-price']%%:</span> %%offer.counter_offer_price || '-' %%
+                </div>
+                <div>
+                    <span title="Counter Offer Quantity" class="bold">%%currentLanguage['offers']['counter-offer-quantity']%%:</span> %%offer.counter_offer_quantity || '-' %%
+                </div>
+                <div>
+                    <span class="bold">%%currentLanguage['offers']['counter-order-value']%%:</span> 
+                    <span v-if="!isNaN(getCounterOfferOrderValue(offer)) && getCounterOfferOrderValue(offer) > 0">
+                        %%getCounterOfferOrderValue(offer) %%
+                    </span>
+                    <span v-else>-</span>
+                </div>
+        </div>
+        <div style="width: 50%;" class="mx-auto mt-3 mb-3">
+            <b-dropdown split class="text-primary" block variant="primary" :disabled="offerActionLoading || offer.draft_order_status != 'pending'">
+                <template v-slot:button-content>
+                    Actions
+                </template>
+                <b-dropdown-item @click="confirmApproveOffer(offer)">
+                    <div class="d-flex align-items-center gap-1 text-success" style="font-size: 14px;">
+                        <b-icon icon="check" aria-hidden="true"></b-icon> %%currentLanguage['offers']['approve'] %%
+                    </div>
+                </b-dropdown-item>
+                <b-dropdown-item @click="confirmRejectOffer(offer)">
+                    <div class="d-flex align-items-center gap-1 text-danger" style="font-size: 14px;">
+                        <b-icon icon="x" aria-hidden="true"></b-icon> %%currentLanguage['offers']['reject'] %%
+                    </div>
+                </b-dropdown-item>
+                <b-dropdown-item @click="showCounterOfferModal(offer)">
+                    <div class="d-flex align-items-center gap-1" style="font-size: 14px;">
+                        <b-icon icon="tag" aria-hidden="true"></b-icon> %%currentLanguage['offers']['counter'] %%
+                    </div>
+                </b-dropdown-item>
+            </b-dropdown>
+        </div>
+    </div>
+    <div v-if="offers.length === 0 && !offersLoading">
+        <div class="text-center">No Offers</div>
+    </div>
+    <div v-if="!lastOffersPageShown" class="mb-3 mt-3">
+        <div class="d-flex justify-content-center">
+            <div v-if="offersCount > offersPerPage" ref="offersIntersectionObeserverTarget" style="display: block;"></div>
+            <b-spinner v-if="offersLoading" type="grow" label="Spinning"></b-spinner>
+        </div>
+    </div>
+</div>
+
+
+<b-modal title="Approve Offer" ref="approveOfferModal" hide-footer hide-backdrop header-class="p-2 pr-3 pl-3 border-primary" static-class="st-c2c-dashboard" static>
+    <b-container>
+        <div class="d-flex flex-column align-items-center justify-content-center">
+            <p>Are you sure you want to approve this offer?</p>
+        </div>
+        <div class="d-flex justify-content-center" style="gap: 5px;">
+            <b-button @click="closeApproveOfferModal" variant="outline-primary">Cancel</b-button>
+            <b-button class="d-flex justify-content-center align-items-center" style="gap: 5px;" @click="approve" :disabled="offerActionLoading" variant="outline-success">
+                Approve <span class="spinner-border spinner-border-sm" role="status" v-if="offerActionLoading"></span>
+            </b-button>
+        </div>
+    <b-container>
+</b-modal>
+
+<b-modal title="Rejection Reason" ref="rejectionReasonModal" hide-footer hide-backdrop header-class="p-2 pr-3 pl-3 border-primary" static-class="st-c2c-dashboard" static>
+    <b-container>
+        <b-form-group :label="currentLanguage['offers']['rejection-reason-optional']" label-class="m-0 p-0">
+            <b-form-textarea v-model="rejectionReason" placeholder="Enter rejection reason" rows="3"></b-form-textarea>
+        </b-form-group>
+        <div class="d-flex justify-content-center" style="gap: 5px;">
+            <b-button class="mt-3" @click="closeRejectionReasonModal" variant="outline-primary">Cancel</b-button>
+            <b-button class="mt-3 d-flex justify-content-center align-items-center" style="gap: 5px;" @click="reject" :disabled="offerActionLoading" variant="outline-danger">
+                Reject <span class="spinner-border spinner-border-sm" role="status" v-if="offerActionLoading"></span>
+            </b-button>
+        </div>
+    </b-container>
+</b-modal>
+
+<b-modal :ref='"counterOffer"' hide-footer hide-backdrop header-class="p-2 pr-3 pl-3 border-primary"
+static-class="st-c2c-dashboard" static>
+    <template #modal-title>
+        <div class="d-flex align-items-center">
+            <i class="simple-icon-tag mr-2"></i>
+            Counter Offer
+        </div>
+    </template>
+    <b-container fluid class="offer-counter">
+        <div>
+            <span>Product: </span>
+            <span v-html="singleOfferData.line_items && singleOfferData.line_items[0].title"></span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center">
+                <span>Seller: %%singleOfferData.line_items && singleOfferData.line_items[0].vendor %%</span>
+                <span>Date: %%formatDate(singleOfferData.created_at)]]</span>
+        </div>
+        <div>
+                <table class="table">
+                    <thead bg-transparent>
+                        <tr>
+                            <th></th>
+                            <th class="text-center w-25">Existing</th>
+                            <th class="text-center w-25">Custom Offer</th>
+                            <th class="text-center w-30">Counter Offer</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="text-center">Price</td>
+                            <td>
+                                <div class="d-flex justify-content-center">
+                                    <span>%%userData.default_shop.currency_country.currency_symbol %% %% singleOfferData.line_items && singleOfferData.line_items[0].price %%</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex justify-content-center">
+                                    <span>%%userData.default_shop.currency_country.currency_symbol %% %% singleOfferData.total_price/(singleOfferData.line_items && singleOfferData.line_items[0].quantity) %%</span>
+                                </div>
+                                <div class="d-flex justify-content-center text-primary" style="font-size:9px">
+                                    ( %%calculateOfferPricePercentage(singleOfferData) %% %)
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex justify-content-center">
+                                    <b-form-input v-model.number="counterOfferPrice" type="number"/>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="bold text-center">Quantity</td>
+                            <td class="text-center">1</td>
+                            <td class="text-center">%%singleOfferData.line_items && singleOfferData.line_items[0].quantity %%</td>
+                            <td>
+                                <b-form-input v-model.number="counterOfferQuantity" type="number"/>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div sm="6" class="mt-3 pl-3">
+                <b-form-group label="Note" class="ml-0" label-class="m-0 p-0 counter-offer-note-label">
+                    <b-form-textarea v-model="note" class="w-100" placeholder="Note"/>
+                </b-form-group>
+            </div>
+            <div class="d-flex justify-content-center align-items-center pl-3 mt-5" style="gap: 5px;">
+                <b-button @click="$refs['counterOffer'].hide()" variant="primary">Cancel</b-button>
+                <b-button  class="d-flex justify-content-center align-items-center" style="gap: 5px;" :disabled="offerActionLoading || (!counterOfferPriceChanged && !counterOfferQuantityChanged)" @click="counterOfferSubmit" variant="primary">
+                    Send <span v-if="offerActionLoading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                </b-button>
+            </div>
+    </b-container>
+</b-modal>

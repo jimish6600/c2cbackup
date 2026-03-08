@@ -1,0 +1,92 @@
+<table class="table c2c-order-table">
+  <thead class="bg-transparent">
+    <tr>
+      <th class="text-center"><p>Order Number</p></th>
+      <th class="text-center"><p>Date</p></th>
+      <th class="text-center"><p>Image</p></th>
+      <th class="text-center"><p>Order Value</p></th>
+      <th class="text-center"><p>Payment Status</p></th>
+      <th class="text-center"><p>Your Earnings</p></th>
+      <th class="text-center"><p>Action</p></th>
+    </tr>
+  </thead>
+  <tbody v-if="!current_orders_loading">
+    <tr v-for="order in orders" :key="order.id">
+      <td class="text-center"><p># %%order.order_number %%</p></td>
+      <td class="text-center"><p>%%formatDate(order.processed_at) %%</p></td>
+      <td class="text-center">
+        <div>
+          <b-carousel
+            v-model="slide"
+            :interval="4000"
+            controls
+            background="#ababab"
+            img-width="1024"
+            img-height="480"
+            style="text-shadow: 1px 1px 2px #333;"
+            @sliding-start="onSlideStart"
+            @sliding-end="onSlideEnd"
+          >
+            <b-carousel-slide
+              v-for="(image, i) in order.variant_images"
+              :key="i"
+            >
+              <template #img>
+                <img
+                  class="d-block"
+                  style="width: 100%; height: 100px; object-fit: center;"
+                  :src="(image.variant && image.variant.image_link) ? image.variant.image_link : 'https://www.freeiconspng.com/thumbs/no-image-icon/no-image-icon-15.png'"
+                />
+              </template>
+            </b-carousel-slide>
+          </b-carousel>
+        </div>
+      </td>
+      <td class="text-center">
+        <p>%%order.currency_country?.currency_symbol || order.currency %% %%order.payment %%</p>
+      </td>
+      <td class="text-center">
+        <p class="mb-0">
+          <b-badge
+            :variant="order.payment_status == 'PP' ? 'success' : 'warning'"
+            class="font-06 pl-4 pr-4 payment-status-badge"
+          >
+            %%order.payment_status %%
+          </b-badge>
+        </p>
+        <div class="text-capitalize text-center">%%order.financial_status %%</div>
+      </td>
+      <td class="text-center">
+        <p class="font-07 mb-0">%%order.vendor_payout.toFixed(2) %%</p>
+        <p class="font-07 mb-0 bold text-uppercase" style="color: #7955A8;">
+          %%order.order_payment_status %%
+        </p>
+      </td>
+      <td class="text-center">
+        <div class="d-flex align-items-center" style="gap: 10px;">
+          <a
+            class="download-awb pointer"
+            v-if="order.awb_label"
+            :href="order.awb_label"
+            target="_blank"
+            title="Download Label"
+          >
+            <b-icon icon="truck" class="c2c-orders-action-icon"></b-icon>
+          </a>
+          <div
+            class="c2c-card-icon-visiblity mx-auto pointer"
+            @click="openOrdersTab('OrderDetailsPage', order.id)"
+          >
+            <b-icon icon="arrow-up-right-square" class="c2c-orders-action-icon"></b-icon>
+          </div>
+          <div
+            class="c2c-card-text-visiblity pointer"
+            @click="openOrdersTab('OrderDetailsPage', order.id)"
+          >
+            <b-link href="#foo">View Order</b-link>
+          </div>
+        </div>
+      </td>
+    </tr>
+  </tbody>
+</table>

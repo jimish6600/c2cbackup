@@ -1,0 +1,65 @@
+<div id="app" class="st-c2c-dashboard">
+    <div id="custom-toaster"></div>
+    <div class="c2c-registration-page-container mb-4">
+        <div class="d-flex flex-column text-center c2c-register-cta-text">
+            <h1 class="c2c-register-cta-header">Complete your Seller Account</h1>
+            <p>Hi {{ $customerData['first_name']}}, please fill in the required info to start selling on {{ $shop->name}}</p>
+        </div>
+        <div class="c2c-form-container mt-4 d-flex justify-content-center">
+            <form @submit.prevent="registerVendor" style="max-width: 100%;">
+                <div class="c2c-main-registration-input-fields">
+                    <div>
+                        <input value="{{$shopifyLoggedInCustomerEmail}}" placeholder="Email" name="email" class="mb-2" disabled
+                        style="cursor: not-allowed"/>
+                    </div>
+                    <div>
+                        <input v-model="first_name" placeholder="First Name" name="first-name" class="mb-2" required/>
+                    </div>
+                    <div>
+                        <input v-model="last_name" placeholder="Last Name" name="last-name" class="mb-2" required/>
+                    </div>
+                    <div>
+                        <input name="phone-number" class="mb-2" placeholder="+44 Phone Number" v-model="phone_number" required/>
+                    </div>
+                    <div>
+                        <input name="address-line-1" class="mb-2" v-model="address_line_1" placeholder="Address Line 1" required/>
+                    </div>
+                    <div>
+                        <input name="address-line-2" class="mb-2" v-model="address_line_2" placeholder="Address Line 2"/>
+                    </div>
+                    <div>
+                        <b-row class="px-0 mx-auto">
+                            <b-col sm="6" class="mb-2 pl-0 pr-sm-3">
+                                <select class='register-input m-0' v-model="country" @change="fetchStates()" :disabled="loading" required>
+                                    <option value="" disabled selected>Country</option>
+                                    <option v-if="countriesLoading">Loading...</option>
+                                    <option v-else v-for="country in countries" :key="country.id" :value="country.code">%%country.name %%</option>
+                                </select>
+                            </b-col>
+                            <b-col sm="6" class="mb-2 pr-0 pl-sm-3">
+                                <select class='register-input m-0' v-model="state" :required="isStateMandatory">
+                                    <option value="" disabled selected>State</option>
+                                    <option v-if="statesLoading">Loading...</option>
+                                    <option v-else v-for="state in states" :key="state.id" :value="state.code">%%state.title %%</option>
+                                </select>
+                            </b-col>
+                            <b-col sm="6" class="mb-3 pl-0 pr-sm-3">
+                                <input name="city" placeholder="City" v-model="city" required/>
+                            </b-col>
+                            <b-col sm="6" class="mb-3 pr-0 pl-sm-3">
+                                <input name="zip-code" placeholder="Zip Code" v-model="pincode" required/>
+                            </b-col>
+                        </b-row>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-center align-items-center mt-5">
+                    <b-button size="lg" class="w-100 d-flex align-items-center justify-content-center gap-2" 
+                    variant="primary" type="submit" :disabled="registerVendorLoading">
+                        <b-spinner v-if="registerVendorLoading" label="Spinning" variant="secondary"></b-spinner>
+                        {{ $sellerRegistrationAutoApproveEnabled ? 'Register' : 'Send Approval Request' }}
+                    </b-button>
+                </div>
+            </form>
+        </div>
+    </div>
+<div>
