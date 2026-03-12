@@ -164,37 +164,25 @@
                             <b-form-input type="number" :value="productData && productData.length" name="length"
                                 @input="(value) => { updateProductDimension(value, 'length'); clearError('length'); }" 
                                 @blur="(event) => formatProductDimension(event, 'length')" placeholder="Length"></b-form-input>
-                                <em class="text-danger">%%addEditProductErrors.length %%</em>
                         </b-col>
                         <b-col sm="4" class="p-1 m-0 mb-2">
                             <b-form-input type="number" :value="productData && productData.width" name="width"
                                 @input="(value) => { updateProductDimension(value, 'width'); clearError('width'); }"
                                 @blur="(event) => formatProductDimension(event, 'width')" class="mr-1 m-0" placeholder="Width"></b-form-input>
-                                <em class="text-danger">%%addEditProductErrors.width %%</em>
                         </b-col>
                         <b-col sm="4" class="p-1 m-0 mb-2">
                             <b-form-input type="number" :value="productData && productData.height" name="height"
                                 @input="(value) => { updateProductDimension(value, 'height'); clearError('height'); }" 
                                 @blur="(event) => formatProductDimension(event, 'height')" class="mr-1 m-0" placeholder="Height"></b-form-input>
-                                <em class="text-danger">%%addEditProductErrors.height %%</em>
                         </b-col>
                         <b-col sm="4" class="p-1 m-0 mb-2">
                             <b-form-input id="Weight" type="number" :value="productData && productData.weight"
                                 @input="(value) => { updateProductDimension(value, 'weight'); clearError('weight'); }"
                                 @blur="(event) => formatProductDimension(event, 'weight')"
                                 :placeholder="'Weight (' + (userData && userData.default_shop.weight_unit) + ')'"></b-form-input>
-                                <em class="text-danger">%%addEditProductErrors.weight %%</em>
                         </b-col>
                     </b-row>
                 </b-colxx>
-            </b-row>
-
-            <b-row class="mx-auto" v-else>
-                <b-col sm="12" class="text-center py-5">
-                    <i class="fa fa-lock fa-3x text-muted mb-3"></i>
-                    <h5 class="text-muted">No Permission to View</h5>
-                    <p class="text-muted">You do not have permission to view dimensions & weight.</p>
-                </b-col>
             </b-row>
         </tab-content>
 
