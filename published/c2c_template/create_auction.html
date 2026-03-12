@@ -1,0 +1,254 @@
+<b-container class="create-auction" fluid>
+  <b-modal ref="custom-increment-modal" title="Set Incremental Price Range" hide-footer header-class="p-2 pr-3 pl-3" size="lg" static-class="st-c2c-dashboard" static>
+    <b-container fluid>
+      <div class="d-flex justify-content-end mb-2">
+        <b-button size="md" @click="addNewIncrement" variant="primary">Add Option</b-button>
+      </div>
+
+      <div class="min-table-height">
+        <table class="table table-bordered table-striped">
+          <thead class="thead-light">
+            <tr>
+              <th>From</th>
+              <th>To</th>
+              <th>Increment</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(increment, index) in customIncrements" :key="index" class="hoverable-row">
+              <td>
+                <b-form-input :value="increment.startPrice" type="number" disabled class="form-control"></b-form-input>
+              </td>
+              <td>
+                <b-form-input v-if="increment.endPrice !== 'Onward'" v-model="increment.endPrice" type="number" :disabled="index !== customIncrements.length - 2" @input="updateLastIncrements(index)" @blur="validateBidIncrementEndPriceRules($event.target.value, 'End Price', index)" class="form-control"></b-form-input>
+                <b-form-input v-else value="Onward" type="text" disabled class="form-control"></b-form-input>
+              </td>
+              <td>
+                <b-form-input v-model="increment.increment" type="number" class="form-control"></b-form-input>
+              </td>
+              <td>
+                <b-button v-if="index === customIncrements.length - 2" variant="danger" size="md" @click="removeIncrement(index)" class="btn-md">Delete Row</b-button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex justify-content-center mt-3">
+        <b-button size="md" @click="saveCustomIncrements" variant="success">Save</b-button>
+      </div>
+    </b-container>
+  </b-modal>
+
+  <b-row class="mb-3">
+    <b-col md="6">
+      <b-form-group label="Auction Title">
+        <b-form-input v-model="form.auction_title" placeholder="Enter Auction Title"></b-form-input>
+        <p v-if="formErrors.auction_title" class="text-danger">%%formErrors.auction_title %%</p>
+      </b-form-group>
+    </b-col>
+    <b-col>
+      <b-row class="no-negative-margin">
+        <b-col>
+          <b-form-group label="Start Price">
+            <b-input-group :prepend="userData.default_shop.currency" append="fixed">
+              <b-form-input type="number" v-model="form.starting_price"></b-form-input>
+            </b-input-group>
+            <p v-if="formErrors.starting_price" class="text-danger">%%formErrors.starting_price %%</p>
+          </b-form-group>
+        </b-col>
+        <b-col>
+          <b-form-group label="Bid Increment">
+            <b-input-group :prepend="userData.default_shop.currency">
+              <b-form-input :disabled="(form.bid_increment_type === 'custom')" type="number" v-model="form.bid_increment_rules[form.bid_increment_rules.length - 1].increment"></b-form-input>
+              <b-form-select v-model="form.bid_increment_type" :options="bidIncrementOptions" @input="setBidIncrementType($event)" style="height: 45.6px;"></b-form-select>
+              <div class="d-flex ml-2 align-items-center" v-if="form.bid_increment_type === 'custom'">
+                <div @click="openCustomIncrementModal" class="pointer plus-icon">+</div>
+              </div>
+            </b-input-group>
+          </b-form-group>
+        </b-col>
+      </b-row>
+    </b-col>
+  </b-row>
+
+  <b-row class="mb-4">
+    <b-col md="6">
+      <b-row class="no-negative-margin">
+        <b-col md="6">
+          <b-form-group label="Start Date">
+            <b-form-input type="date" v-model="startDate"></b-form-input>
+            <p v-if="formErrors.startDate" class="text-danger">%%formErrors.startDate %%</p>
+          </b-form-group>
+        </b-col>
+        <b-col md="6">
+          <b-form-group label="Start Time">
+            <b-form-input type="time" v-model="startTime" step="1"></b-form-input>
+            <p v-if="formErrors.startTime" class="text-danger">%%formErrors.startTime %%</p>
+          </b-form-group>
+        </b-col>
+      </b-row>
+    </b-col>
+    <b-col md="6">
+      <b-row class="no-negative-margin">
+        <b-col md="6">
+          <b-form-group label="End Date">
+            <b-form-input type="date" v-model="endDate"></b-form-input>
+            <p v-if="formErrors.endDate" class="text-danger">%%formErrors.endDate %%</p>
+          </b-form-group>
+        </b-col>
+        <b-col md="6">
+          <b-form-group label="End Time">
+            <b-form-input type="time" v-model="endTime" step="1"></b-form-input>
+            <p v-if="formErrors.endTime" class="text-danger">%%formErrors.endTime %%</p>
+          </b-form-group>
+        </b-col>
+      </b-row>
+    </b-col>
+  </b-row>
+
+  <b-row class="mb-3 ml-2">
+    <b-col class="col-sm-auto pr-0">
+      <b-form-checkbox v-model="form.proxy_bidding_enabled"></b-form-checkbox>
+    </b-col>
+    <b-col class="pl-0">
+      <p>Proxy Bidding / Automatic Bidding</p>
+      <b-form-text class="mt-0 mb-1">Enables customers to set a maximum bid, the system will auto-bid until that limit.</b-form-text>
+    </b-col>
+  </b-row>
+
+  <b-row class="mb-3 ml-2">
+    <b-col class="col-sm-auto pr-0">
+      <b-form-checkbox v-model="form.penny_auction_enabled"></b-form-checkbox>
+    </b-col>
+    <b-col class="pl-0">
+      <p>Penny Auction</p>
+      <b-form-text class="mt-0 mb-1">Customers buy bids for a fee as Penny Products. <b-link href="#">Click here</b-link> to create penny products.</b-form-text>
+    </b-col>
+  </b-row>
+
+  <b-row class="mb-3 ml-2">
+    <b-col class="col-sm-auto pr-0">
+      <b-form-checkbox v-model="form.reserve_price_enabled"></b-form-checkbox>
+    </b-col>
+    <b-col class="pl-0">
+      <p>Reserve Price</p>
+      <b-form-text class="mb-2">Auctioneer will be eligible to declare a winner if the reserve price has been met.</b-form-text>
+      <b-row v-if="form.reserve_price_enabled">
+        <b-col sm="4">
+          <b-form-group label="Reserve Price Amount">
+            <b-input-group prepend="USD" append="fixed">
+              <b-form-input type="number" v-model="form.reserve_price"></b-form-input>
+            </b-input-group>
+          </b-form-group>
+          <b-form-checkbox v-model="form.show_reserve_price">Show reserve price on storefront</b-form-checkbox>
+        </b-col>
+      </b-row>
+    </b-col>
+  </b-row>
+
+  <b-row class="mb-3 ml-2">
+    <b-col class="col-sm-auto pr-0">
+      <b-form-checkbox v-model="form.popcorn_bidding_enabled"></b-form-checkbox>
+    </b-col>
+    <b-col class="pl-0">
+      <p>Popcorn Bidding</p>
+      <b-form-text class="mb-2">Extends the countdown when a bid is placed near the auction's end</b-form-text>
+      <b-row v-if="form.popcorn_bidding_enabled">
+        <b-col sm="4">
+          <b-form-group label="Active when time left is less than">
+            <b-input-group>
+              <b-form-input type="number" v-model="form.popcorn_bidding_trigger_minutes"></b-form-input>
+              <b-input-group-append>
+                <b-input-group-text>Minutes</b-input-group-text>
+              </b-input-group-append>
+            </b-input-group>
+          </b-form-group>
+        </b-col>
+        <b-col sm="4">
+          <b-form-group label="Extend the time for bidding to">
+            <b-input-group>
+              <b-form-input type="number" v-model="form.popcorn_bidding_extend_minutes"></b-form-input>
+              <b-input-group-append>
+                <b-input-group-text>Minutes</b-input-group-text>
+              </b-input-group-append>
+            </b-input-group>
+          </b-form-group>
+        </b-col>
+      </b-row>
+    </b-col>
+  </b-row>
+
+  <b-row class="mb-3 ml-2 mt-3">
+    <b-col class="col-sm-auto pr-0">
+      <b-form-checkbox v-model="form.buyer_premium_enabled"></b-form-checkbox>
+    </b-col>
+    <b-col class="pl-0">
+      <p>Buyer Premium</p>
+      <b-form-text class="mb-2">An additional fee charged to the winning bidder, calculated as a percentage of the final bid.</b-form-text>
+      <b-row v-if="form.buyer_premium_enabled">
+        <b-col sm="4">
+          <b-form-group label="Buyer Premium (percentage)">
+            <b-input-group append="%">
+              <b-form-input type="number" v-model="form.buyer_premium_percentage"></b-form-input>
+            </b-input-group>
+          </b-form-group>
+        </b-col>
+      </b-row>
+    </b-col>
+  </b-row>
+
+  <b-row class="mb-3 mt-3 ml-2">
+    <b-col class="col-sm-auto pr-0">
+      <b-form-checkbox v-model="form.buyout_enabled"></b-form-checkbox>
+    </b-col>
+    <b-col class="pl-0">
+      <p>Buyout Price</p>
+      <b-form-text class="mb-2">Allows customers to purchase the product at a set price without bidding</b-form-text>
+      <b-row v-if="form.buyout_enabled">
+        <b-col sm="4">
+          <b-form-group label="Buy Out Price">
+            <b-input-group prepend="USD" append="Fixed">
+              <b-form-input type="number" v-model="form.buyout_price"></b-form-input>
+            </b-input-group>
+          </b-form-group>
+          <b-form-checkbox v-model="form.show_buyout_price">Show buyout price in store front</b-form-checkbox>
+        </b-col>
+      </b-row>
+    </b-col>
+  </b-row>
+
+  <b-row>
+    <b-col md="6">
+      <label class="font-weight-bold">Product Selection</label>
+      <v-select @search:focus="onSearch" v-model="selectedProduct" :options="productOptions" label="title" placeholder="Search and select a product" :filterable="false" @search="onSearch" @input="onProductSelect" class="mb-2"></v-select>
+      <p class="text-danger" v-if="formErrors.product">Product selection required</p>
+      <div v-if="product" class="product-item border p-3 rounded">
+        <b-row align-v="center" no-gutters>
+          <b-col cols="auto">
+            <b-form-checkbox v-model="isProductSelected" @change="selectAllVariants" class="mb-2"></b-form-checkbox>
+          </b-col>
+          <b-col cols="auto">
+            <b-img :src="product.image_link || 'https://api.shipturtle.com/assets/no-logo.jpeg'" fluid thumbnail width="50" height="50"></b-img>
+          </b-col>
+          <b-col cols="9" class="pl-3">
+            <h5 class="mb-0">%%product.title %%</h5>
+          </b-col>
+        </b-row>
+        <b-row>
+          <b-col>
+            <div v-for="variant in product.variants" :key="variant.id" class="variant-item mb-1">
+              <b-form-checkbox v-model="selectedVariants" :value="variant.id" @change="updateProductSelectAll">%%variant.title %%</b-form-checkbox>
+            </div>
+          </b-col>
+        </b-row>
+      </div>
+    </b-col>
+  </b-row>
+
+  <div class="d-flex justify-content-center mt-4">
+    <b-button variant="outline-danger" class="mr-2">Discard</b-button>
+    <b-button @click="proceedIfValid" variant="warning">Select Products</b-button>
+  </div>
+</b-container>

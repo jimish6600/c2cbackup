@@ -1,0 +1,214 @@
+<div class="profile-page-container">
+    <b-tabs pills content-class="container-margin" class="position-relative" align="center">
+        <b-tab class="mb-4 " variant="outline-primary" :title="'Bio'" @click="editProfile">
+            <b-overlay :show="loading" rounded="sm" no-center>
+                <template #overlay>
+                    <div class="d-flex justify-content-center">
+                        <b-spinner large type="grow" class="mr-2" variant="primary" ></b-spinner>
+                    </div>
+                </template>
+                <form @submit.prevent="updateProfile">
+                    <div class="profile-bio-container mx-sm-auto mt-5">
+                        <b-row class="mx-auto">
+                            <b-col md="6" class="mb-3 d-flex flex-column">
+                                <b-form-group label="Phone Number *" label-for="phone_number">
+                                    <b-form-input id="phone_number" v-model="editProfileData.phone_number" placeholder="Phone Number" style="width: 90%" required/>
+                                </b-form-group>
+                            </b-col>
+                            <b-col md="6" class="mb-3 d-flex flex-column">
+                                <b-form-group label="Email *" label-for="email">
+                                    <b-form-input id="email" v-model="editProfileData.email" placeholder="Email" style="width: 90%" disabled/>
+                                </b-form-group>
+                            </b-col>
+                            <b-col md="6" class="mb-3 d-flex flex-column">
+                                <b-form-group label="Address Line 1 *" label-for="address_line_1">
+                                    <b-form-input id="address_line_1" v-model="editProfileData.address_line_1" placeholder="Address Line 1" style="width: 90%" required/>
+                                </b-form-group>
+                            </b-col>
+                            <b-col md="6" class="mb-3 d-flex flex-column">
+                                <b-form-group label="Address Line 2" label-for="address_line_2">
+                                    <b-form-input id="address_line_2" v-model="editProfileData.address_line_2" placeholder="Address Line 2" style="width: 90%"/>
+                                </b-form-group>
+                            </b-col>
+                            <b-col md="6" class="mb-3 d-flex flex-column">
+                                <b-form-group label="Country *" label-for="country" style="width: 90%">
+                                    <b-form-select id="country" v-model="editProfileData.country" @change="fetchStates(editProfileData.country)" :disabled="loading" required>
+                                        <option value="" disabled selected>Country</option>
+                                    <option v-for="country in countries" :key="country.id" :value="country.code">%%country.name %%</option>
+                                    </select>
+                                </b-form-group>
+                            </b-col>
+                            <b-col md="6" class="mb-3 d-flex flex-column">
+                                <b-form-group label="State *" label-for="state" style="width: 90%">
+                                    <b-form-select id="state" v-model="editProfileData.state_code" required>
+                                        <option value="" disabled selected>State</option>
+                                        <option v-if="statesLoading">Loading...</option>
+                                        <option v-else v-for="state in states" :key="state.id" :value="state.code">%%state.title %%</option>
+                                    </b-form-select>
+                                </b-form-group>
+                            </b-col>
+                            <b-col md="6" class="mb-3 d-flex flex-column">
+                                <b-form-group label="City *" label-for="city">
+                                    <b-form-input id="city" v-model="editProfileData.city" placeholder="City" style="width: 90%" required/>
+                                </b-form-group>
+                            </b-col>
+                            <b-col md="6" class="mb-3 d-flex flex-column">
+                                <b-form-group label="Zip Code *" label-for="zip-code">
+                                    <b-form-input id="zip-code" v-model="editProfileData.pin_code" placeholder="Zip Code" style="width: 90%" required/>
+                                </b-form-group>
+                            </b-col>
+                            <b-col md="6" class="mb-3 d-flex flex-column">
+                                <b-form-group label="Tiktok" label-for="tiktok-link">
+                                    <b-form-input id="tiktok-link" v-model="editProfileData.tiktok_link" placeholder="Tiktok" style="width: 90%"/>
+                                </b-form-group>
+                            </b-col>
+                            <b-col md="6" class="mb-3 d-flex flex-column">
+                                <b-form-group label="Facebook" label-for="facebook-link">
+                                    <b-form-input id="facebook-link" v-model="editProfileData.facebook_link" placeholder="Facebook" style="width: 90%"/>
+                                </b-form-group>
+                            </b-col>
+                            <b-col md="6" class="mb-3 d-flex flex-column">
+                                <b-form-group label="Twitter" label-for="twitter-link">
+                                    <b-form-input id="twitter-link" v-model="editProfileData.twitter_link" placeholder="Twitter" style="width: 90%"/>
+                                </b-form-group>
+                            </b-col>
+                            <b-col md="6" class="mb-3 d-flex flex-column">
+                                <b-form-group label="Instagram" label-for="instagram-link">
+                                    <b-form-input id="instagram-link" v-model="editProfileData.instagram_link" placeholder="Instagram" style="width: 90%"/>
+                                </b-form-group>
+                            </b-col>
+                            <b-col md="6" class="mb-3 d-flex flex-column">
+                                <b-form-group label="Bio" label-for="bio">
+                                    <b-textarea id="bio" class="w-90 pt-1" style="resize: none;" rows="8" placeholder="Bio" v-model="editProfileData.about_us" style="width: 90%"></b-textarea>
+                                </b-form-group>
+                            </b-col>
+                            <b-col md="6" class="mb-3 d-flex flex-column">
+                                <label for="bio">Profile Image</label>
+                                <b-form-file v-if="!editProfileData.logo_link" type="file"
+                                @change="uploadCompanyLogo" size="sm" class="custom-width-form-file" style="width: 90%"></b-form-file>
+                                <div v-else>
+                                    <img style="width: 100px; height: 100px; object-fit: contain;" :src="this.editProfileData.logo_link" class="profile-picture"/>
+                                    <svg xmlns="http://www.w3.org/2000/svg" height="15" width="15" @click="deleteCompanyLogo" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                    </svg>
+                                </div>
+                            </b-col>
+                             <b-col v-if="moduleItem.pickup_option_at_checkout == 'true'" md="12">
+  <b-form-checkbox
+                       :checked="userData.company.pickup_option_at_checkout && userData.company.pickup_option_at_checkout.offer_pickup_from_default_warehouse == 'true'"
+                     @change="updateOfferPickUpFromDefaultWarehouse"
+                      switch
+                      >
+                        <b>Offer pickup from this address</b>
+                      </b-form-checkbox>
+                            </b-col>
+                            <b-col xs="12" class="mt-5">
+                                <b-button :disabled="submitLoading" variant="primary" size="lg" @click="updateProfile" class="d-flex align-items-center sm-gap">
+                                    <b-spinner small class="mr-2" v-if="submitLoading" variant="primary" ></b-spinner>
+                                    Save
+                                </b-button>
+                            </b-col>
+                        </b-row>
+                    </div>
+                </form>
+            </b-overlay>
+        </b-tab>
+        <b-tab class="mb-4 " variant="outline-primary" :title="'Payment Methods'" @click="getPaymentMethodDetails">
+            <b-overlay :show="loading" rounded="sm" no-center>
+                <template #overlay>
+                    <div class="d-flex justify-content-center">
+                        <b-spinner large type="grow" class="mr-2" variant="primary" ></b-spinner>
+                    </div>
+                </template>
+                <div class="profile-payment-details-containers mx-sm-auto mt-5">
+                        <b-row class="mx-auto">
+                            <b-col sm="6" class="mb-3 d-flex flex-column">
+                                <label for="payment-gateway">Payment Gateway</label>
+                                <select class='m-0' style="width: 90%;" v-model="provider" required>
+                                    <option value="" disabled selected>Payment Gateway</option>
+                                    <option v-for="gateway in paymentGateway" :key="gateway.value" :value="gateway.value">%%gateway.text %%</option>
+                                </select>
+                            </b-col>
+                        </b-row>
+                        <b-row class="mx-auto" v-if="provider === 'manual'">
+                            <b-col md="6" class="mb-3 d-flex flex-column">
+                                <label for="payment-method">Payment Method</label>
+                                <select class='m-0' style="width: 90%;" v-model="paymentMethod.payment_method" required>
+                                    <option value="" disabled selected>Payment Method</option>
+                                    <option v-for="method in paymentMethodOptions" :key="method.value" :value="method.value">%%method.text %%</option>
+                                </select>
+                            </b-col>
+                            <div v-if="paymentMethod.payment_method === 'bank_transfer'">
+                                <b-row class="mx-auto">
+                                    <b-col md="6" class="mb-3 d-flex flex-column">
+                                        <label for="nick-name">Nick Name</label>
+                                        <input name="nick-name" class="nick-name" style="width: 90%;" placeholder="Nick Name" v-model="paymentMethod.nick_name" required/>
+                                    </b-col>
+                                    <b-col md="6" class="mb-3 d-flex flex-column">
+                                        <label>Account Owner Name<span style="font-size: 12px; font-weight: 400;">(Should be same with your bank account name)</span></label>
+                                        <input name="Account Owner Name" style="width: 90%" placeholder="Account Owner Name" v-model="paymentMethod.account_name" required/>
+                                    </b-col>
+                                    <b-col md="6" class="mb-3 d-flex flex-column">
+                                        <label>Account Number</label>
+                                        <input name="Account Number" style="width: 90%" placeholder="Account Number" v-model="paymentMethod.account_number" required/>
+                                    </b-col>
+                                    <b-col md="6" class="mb-3 d-flex flex-column">
+                                        <label>IFSC Code</label>
+                                        <input name="ifsc-code" placeholder="Zip Code" v-model="paymentMethod.sort_code" style="width: 90%"/>
+                                    </b-col>
+                                    <b-col md="6" class="mb-3 d-flex flex-column">
+                                        <label>Bank Name</label>
+                                        <input name="bank-name" placeholder="Bank Name" v-model="paymentMethod.bank_company_name" style="width: 90%"/>
+                                    </b-col>
+                                </b-row>
+                            </div>
+                        </b-row>
+                        <b-row class="mx-auto" v-else-if="provider === 'paypal'">
+                            <b-colxx sm="6" v-if="!paypal_enabled">
+                                <h5 class="text-center">Please ask your merchant to setup a paypal payment method</h5>
+                            </b-colxx>
+                            <b-col v-else class="mb-3 d-flex flex-column">
+                                <label for="paypal-email">Paypal Email</label>
+                                <input type="email" name="paypal-email" placeholder="Paypal Email" v-model="paypal_email" style="width: 90%"/>
+                            </b-col>
+                        </b-row>
+                        <b-row class="mx-auto" v-else-if="provider === 'stripe'">
+                            <b-colxx sm="6" v-if="!stripe_enabled">
+                                <h5 class="text-danger" v-if="stripeErrorMessage" v-html="stripeErrorMessage">
+                                </h5>
+                                <h5 class="text-center" v-else>
+                                    Please ask your merchant to setup a Stripe payout method
+                                </h5>
+                            </b-colxx>
+                            <b-colxx sm="6" v-else>
+                                <b-row class="mx-auto" v-if="vendorAccountDetails.url">
+                                    <b-colxx xxs="12" class="text-center mt-2">
+                                        <h6>Stripe not connected, click the button below to connect stripe</h6>
+                                        <b-button
+                                            target="_blank"
+                                            variant="outline-primary"
+                                            size="sm"
+                                            :href="vendorAccountDetails.url"
+                                        >Connect to Stripe</b-button>
+                                    </b-colxx>
+                                </b-row>
+                                <b-row class="mx-auto">
+                                    <b-colxx xxs="12" class="text-center mt-3">
+                                        <h6 v-if="vendorAccountDetails.url == ''">
+                                        Stripe connected
+                                        </h6>
+                                        <h6>%%vendorAccountDetails.charges_enabled? "Charges enabled" : "Charges not yet enabled"%%</h6>
+                                        <h6>%%vendorAccountDetails.details_submitted ? "Details submitted" : "Details not yet submitted"%%</h6>
+                                    </b-colxx>
+                                </b-row>
+                            </b-colxx>
+                        </b-row>
+                        <div class="mb-5 mt-5">
+                            <b-button v-if="provider === 'manual'" variant="primary" size="lg" @click="savePaymentMethod">Save</b-button>
+                            <b-button v-else-if="provider === 'paypal' && paypal_enabled" variant="primary" size="lg" @click="updatePaypalEmail">Save</b-button>
+                        </div>
+                </div>
+            </b-overlay>
+        </b-tab>
+    </b-tabs>
+</div>

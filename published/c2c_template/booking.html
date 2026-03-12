@@ -1,0 +1,113 @@
+<div class="products_list_container">
+    <div>
+        <div class="d-flex justify-content-between align-items-center my-3 gap-2">
+            <!-- Search input with icon -->
+            <div class="mb-md-0" style="max-width: 400px; flex: 1;">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text bg-white border-right-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M11 6a5 5 0 1 0-1.293 3.293l3.854 3.853a1 1 0 0 0 1.415-1.414l-3.854-3.853A5 5 0 0 0 11 6zM6 10a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/>
+                            </svg>
+                        </span>
+                    </div>
+                    <input
+                        type="text"
+                        class="form-control border-left-0 py-2"
+                        placeholder="Search Booking Type"
+                        v-model="searchQueryBookingType"
+                        @input="handleSearchBookingType"
+                    />
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center mb-md-0">
+                <!-- Create Auction Button -->
+                <b-button variant="primary" class="d-flex align-items-center text-white" @click="openPage('addBooking')">
+                    <b-icon icon="plus-circle" class="mr-2" font-scale="1.2" variant="light"></b-icon>
+                    <span class="text-white">New Booking Type</span>
+                </b-button>
+            </div>
+        </div>
+
+        <b-table
+            :items="bookingdata"
+            :fields="bookingfields"
+            responsive
+            bordered
+            hover
+            show-empty
+            :select-mode="null">
+             <template #head()="data">
+                <p class="m-0">%%data.label %%</p>
+            </template>
+            <!-- Start Date -->
+            <template #cell(created_at)="data">
+                <p>%%formatDateTime(data.item.created_at) %%</p>
+            </template>
+            <template #cell(rule_name)="data">
+                <p>%%data.item.rule_name %%</p>
+            </template>
+            <template #cell(booking_type)="data" class="d-flex justify-content-center align-items-center">
+                <b-badge variant='info'>
+                    %%data.item.booking_type || 'Unknown' %%
+                </b-badge>
+            </template>
+            <template #cell(status)="data">
+                <b-badge variant='success' v-if="data.item.status === 1">
+                    Active
+                </b-badge>
+                <b-badge variant='danger' v-else>
+                    Deactive
+                </b-badge>
+            </template>
+            <template #cell(actions)="data">
+                <div class="d-flex align-items-center justify-content-center">
+                    <!-- Edit Button -->
+                    <b-button size="xs" class="border-0 mr-2" variant="outline-primary" @click="openPage('editBooking',data.item.id)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" title="Edit">
+                            <path d="M15.502 1.94a.5.5 0 0 1 0 .706l-1.207 1.207-2.121-2.121L13.38.525a.5.5 0 0 1 .707 0l1.414 1.414zM1 13.5V16h2.5l9.146-9.146-2.5-2.5L1 13.5z" />
+                        </svg>
+                    </b-button>
+                    
+                    <!-- active/inactive Button -->
+                    <b-button v-if="data.item.status === 0" size="xs" class="border-0" variant="outline-primary" @click="activeBookingType({id: data.item.id,status: 1})">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 50 50" title="Active">
+                            <path d="M25,2c-12.69047,0 -23,10.30953 -23,23c0,12.69047 10.30953,23 23,23c12.69047,0 23,-10.30953 23,-23c0,-12.69047 -10.30953,-23 -23,-23zM25,4c11.60953,0 21,9.39047 21,21c0,11.60953 -9.39047,21 -21,21c-11.60953,0 -21,-9.39047 -21,-21c0,-11.60953 9.39047,-21 21,-21zM34.98828,14.98828c-0.3299,0.0065 -0.63536,0.17531 -0.81641,0.45117l-10.20117,15.03711l-7.29102,-6.76562c-0.26069,-0.25084 -0.63652,-0.34135 -0.98281,-0.23667c-0.3463,0.10468 -0.60907,0.38821 -0.68715,0.74145c-0.07809,0.35324 0.04068,0.72112 0.31059,0.96201l8.99609,8.34766l11.51172,-16.96484c0.2153,-0.3085 0.23926,-0.71173 0.06201,-1.04356c-0.17725,-0.33183 -0.52573,-0.53612 -0.90186,-0.5287z" />
+                        </svg>
+                    </b-button>
+                    <b-button v-else size="xs" class="border-0" variant="outline-primary" @click="inactiveBookingType({id: data.item.id,status: 0})">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 50 50" title="Disabled">
+                            <path d="M25,2C12.30953,2,2,12.30953,2,25s10.30953,23,23,23,23-10.30953,23-23S37.69047,2,25,2zm0,4c11.60953,0,21,9.39047,21,21s-9.39047,21-21,21S4,36.60953,4,25,13.39047,4,25,4zm-14.14258,7.85742l28.28516,28.28516-2.82813,2.82813L8.0293,16.68555z" />
+                        </svg>
+                    </b-button>
+
+                    <!-- Delete Button -->
+                    <b-button size="xs" class="border-0" variant="outline-danger" @click="deleteBookingType(data.item.id)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" title="Delete">
+                            <path d="M5.5 5.5a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0v-6a.5.5 0 0 1 .5-.5zm5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0v-6a.5.5 0 0 1 .5-.5z" />
+                            <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1 0-2h3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1h3a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118z" />
+                        </svg>
+                    </b-button>
+                </div>
+            </template>
+        </b-table>
+        <div class="d-flex justify-content-center my-3 flex-wrap">
+            <b-button class="mx-1" variant="outline-secondary" :disabled="pageBookingType === 1" @click="goToFirstBookingType"><<</b-button>
+            <b-button class="mx-1" variant="outline-secondary" :disabled="pageBookingType === 1" @click="goToPrevBookingType"><</b-button>
+
+            <b-button
+                v-for="p in visiblePagesBookingType"
+                :key="p"
+                class="mx-1"
+                variant="primary"
+                :class="{ activeButtonPage: pageBookingType === p }"
+                @click="changePageBookingType(p)">
+                %%p %%
+            </b-button>
+
+            <b-button class="mx-1" variant="outline-secondary" :disabled="pageBookingType === totalPagesBookingType" @click="goToNextBookingType">></b-button>
+            <b-button class="mx-1" variant="outline-secondary" :disabled="pageBookingType === totalPagesBookingType" @click="goToLastBookingType">>></b-button>
+        </div>
+    </div>
+</div>
