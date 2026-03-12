@@ -1,259 +1,117 @@
 <div class="products_list_container">
-  <div
-    class="mx-auto listing_header_container mt-5 mt-sm-0 px-2 d-flex justify-content-between align-items-center"
-  >
-    <div class="listing_title_container pr-0 pl-0">
-      <h3 class="m-0">
-        My Listings (%%activeProductsCount + pendingApprovalProductsCount %%)
-      </h3>
-    </div>
-    <div
-      class="add_listing_btn_container mt-3 mt-sm-0 d-flex justify-content-center justify-content-sm-end"
-    >
-      <b-button
-        variant="outline-primary"
-        class="btn-styling"
-        title="ADD A LISTING"
-        @click="openPage('addListing')"
-      >
-        Add Listing
-      </b-button>
-    </div>
-  </div>
-  <b-tabs pills class="products_tabs_container">
-    <b-tab active @click="fetchActiveProducts('tabTriggered')">
-      <template slot="title">
-        <div class="d-flex align-items-center gap-1">
-          <b-spinner
-            small
-            v-if="active_products_loading"
-            variant="light"
-          ></b-spinner>
-          Active (%%activeProductsCount%%)
+    <div class="mx-auto listing_header_container mt-5 mt-sm-0 px-2 d-flex justify-content-between align-items-center">
+        <div class="listing_title_container pr-0 pl-0">
+            <h3 class="m-0">My Listings (%%activeProductsCount + pendingApprovalProductsCount %%)</h3>
         </div>
-      </template>
-      <div>
-        <div class="product-cards-container">
-          <div
-            class="product-card d-flex flex-column"
-            v-for="item in activeProducts"
-            :key="item.title"
-          >
-            <div class="product-card-img">
-              <video
-                v-if="item.videos !== null && item.videos.length > 0"
-                controls
-                width="100%"
-                ref="c2cVideo"
-                muted="muted"
-                @mouseenter="playVideo"
-                @mouseleave="pauseVideo"
-              >
-                <source :src="item.videos[0].src" type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
-              <img
-                v-else
-                :src="item.image || 'https://www.freeiconspng.com/thumbs/no-image-icon/no-image-icon-15.png'"
-                alt="Image"
-              />
-            </div>
-            <div
-              class="product-card-details d-flex flex-column justify-content-between flex-grow-1 text-center"
-            >
-              <div>
-                <h3 class="font-weight-normal text-uppercase">
-                  %%item.title %%
-                </h3>
-                <div
-                  class="d-flex flex-column flex-sm-row align-items-center justify-content-center gap-1"
-                >
-                  <p
-                    class="m-0"
-                    v-if="(item.variants && item.variants.length > 0 ? item.variants[0].price : null) || item.price"
-                  >
-                    %% currencySymbol %% %%item.variants && item.variants.length
-                    > 0 ? item.variants[0].price : item.price %%
-                  </p>
-                  <p class="m-0" v-if="item.variant_inventory_count">
-                    Qty: %%item.variant_inventory_count.quantity %%
-                  </p>
+        <div class="add_listing_btn_container mt-3 mt-sm-0 d-flex justify-content-center justify-content-sm-end">
+            <b-button variant="outline-primary" class="btn-styling" title="ADD A LISTING"
+                @click="openPage('addListing')">
+                Add Listing
+            </b-button>
+        </div>
+    </div>
+    <b-tabs pills class="products_tabs_container">
+        <b-tab active @click="fetchActiveProducts('tabTriggered')">
+            <template slot="title">
+                <div class="d-flex align-items-center gap-1">
+                    <b-spinner small  v-if="active_products_loading" variant="light"></b-spinner> Active (%%activeProductsCount%%)
                 </div>
-              </div>
-              <div
-                class="d-flex flex-column flex-sm-row mt-5 c2c-product-action-container"
-              >
-                <a
-                  class="card-action-btn"
-                  href="#"
-                  @click.prevent="openDeleteProductModal(item)"
-                  >Delete</a
-                >
-                <a
-                  class="card-action-btn edit"
-                  @click.prevent="openPage('editListing', item, 'activeProducts')"
-                  href="#"
-                >
-                  Edit</a
-                >
-              </div>
+            </template>
+            <div>
+                <div class="product-cards-container">
+                    <div class="product-card d-flex flex-column" v-for="item in activeProducts" :key="item.title">
+                        <div class="product-card-img">
+                            <video v-if="item.videos !== null && item.videos.length > 0" controls width="100%" ref="c2cVideo" muted="muted" @mouseenter="playVideo" @mouseleave="pauseVideo">
+                                <source :src="item.videos[0].src" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                            <img v-else :src="item.image || 'https://www.freeiconspng.com/thumbs/no-image-icon/no-image-icon-15.png'" alt="Image">
+                        </div>
+                        <div class="product-card-details d-flex flex-column justify-content-between flex-grow-1 text-center">
+                            <div>
+                                <h3 class="font-weight-normal text-uppercase">%%item.title %%</h3>
+                                <div class="d-flex flex-column flex-sm-row align-items-center justify-content-center gap-1">
+                                    <p class="m-0" v-if="(item.variants && item.variants.length > 0 ? item.variants[0].price : null) || item.price">%% currencySymbol %% %%item.variants && item.variants.length > 0 ? item.variants[0].price : item.price %%</p>
+                                    <p class="m-0" v-if="item.variant_inventory_count">Qty: %%item.variant_inventory_count.quantity %%</p>
+                                </div>
+                            </div>
+                            <div class="d-flex flex-column flex-sm-row mt-5 c2c-product-action-container">
+                                <a class="card-action-btn" href="#" @click.prevent="openDeleteProductModal(item)">Delete</a>
+                                <a class="card-action-btn edit" @click.prevent="openPage('editListing', item, 'activeProducts')" href="#">
+                                Edit</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
-        </div>
-      </div>
-      <div class="d-flex justify-content-center">
-        <div
-          v-if="activeProductsCount > itemsPerPage"
-          ref="intersectionObeserverTarget"
-          style="display: block;"
-        ></div>
-        <b-spinner
-          v-if="active_products_loading"
-          type="grow"
-          label="Spinning"
-        ></b-spinner>
-      </div>
-      <div
-        v-if="activeProducts.length === 0 && !active_products_loading"
-        class="d-flex justify-content-center"
-      >
-        <p>No listing found</p>
-      </div>
-    </b-tab>
-    <b-tab @click="fetchPendingApprovalProducts">
-      <template slot="title">
-        <div class="d-flex align-items-center gap-1">
-          <b-spinner
-            small
-            v-if="pending_products_loading"
-            class="product_tab_spinner"
-            variant="light"
-          ></b-spinner>
-          Pending Approval (%%pendingApprovalProductsCount%%)
-        </div>
-      </template>
-      <div>
-        <div class="product-cards-container">
-          <div
-            class="product-card d-flex flex-column"
-            v-for="item in pendingApprovalProducts"
-            :key="item.title"
-          >
-            <div class="product-card-img">
-              <img
-                :src="item.product_json && item.product_json.images && item.product_json.images.length > 0 ? item.product_json && item.product_json.images[0].src : 'https://www.freeiconspng.com/thumbs/no-image-icon/no-image-icon-15.png'"
-                alt="Image"
-              />
+            <div class="d-flex justify-content-center">
+                <div v-if="activeProductsCount > itemsPerPage" ref="intersectionObeserverTarget" style="display: block;"></div>
+                <b-spinner v-if="active_products_loading" type="grow" label="Spinning"></b-spinner>                
+            </div> 
+            <div v-if="activeProducts.length === 0 && !active_products_loading" class="d-flex justify-content-center">
+               <p>No listing found</p>              
+            </div> 
+        </b-tab>
+        <b-tab @click="fetchPendingApprovalProducts">
+            <template slot="title">
+                 <div class="d-flex align-items-center gap-1">
+                    <b-spinner small v-if="pending_products_loading"  class="product_tab_spinner"  variant="light"></b-spinner> Pending Approval (%%pendingApprovalProductsCount%%)
+                 </div>
+            </template>
+            <div>
+                <div class="product-cards-container">
+                    <div class="product-card d-flex flex-column" v-for="item in pendingApprovalProducts" :key="item.title">
+                        <div class="product-card-img">
+                            <img :src="item.product_json && item.product_json.images && item.product_json.images.length > 0 ? item.product_json && item.product_json.images[0].src : 'https://www.freeiconspng.com/thumbs/no-image-icon/no-image-icon-15.png'" alt="Image">
+                        </div>
+                        <div class="product-card-details d-flex flex-column justify-content-between flex-grow-1 text-center">
+                            <div>
+                                <h3 class="font-weight-normal text-uppercase">%%item.title %%</h3>
+                                <p class="m-0" v-if="item.price">%% currencySymbol %% %%item.price %%</p>
+                            </div>
+                            <div class="d-flex flex-column flex-sm-row mt-5 c2c-product-action-container">
+                                <a class="card-action-btn btn-outline-primary" href="#" @click.prevent="openDeletePendingApprovalProductModal(item)">Delete</a>
+                                <a class="card-action-btn btn-primary edit" @click.prevent="openPage('editListing', item, 'pendingApproval')" href="#">
+                                Edit</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div
-              class="product-card-details d-flex flex-column justify-content-between flex-grow-1 text-center"
-            >
-              <div>
-                <h3 class="font-weight-normal text-uppercase">
-                  %%item.title %%
-                </h3>
-                <p class="m-0" v-if="item.price">
-                  %% currencySymbol %% %%item.price %%
-                </p>
-              </div>
-              <div
-                class="d-flex flex-column flex-sm-row mt-5 c2c-product-action-container"
-              >
-                <a
-                  class="card-action-btn btn-outline-primary"
-                  href="#"
-                  @click.prevent="openDeletePendingApprovalProductModal(item)"
-                  >Delete</a
-                >
-                <a
-                  class="card-action-btn btn-primary edit"
-                  @click.prevent="openPage('editListing', item, 'pendingApproval')"
-                  href="#"
-                >
-                  Edit</a
-                >
-              </div>
+            <div class="d-flex justify-content-center">
+                <b-spinner  v-if="pending_products_loading" type="grow" label="Spinning"></b-spinner>                
+            </div> 
+            <div v-if="pendingApprovalProducts.length === 0 && !pending_products_loading" class="d-flex justify-content-center">
+               <p>No listing found</p>              
+            </div> 
+        </b-tab>
+    </b-tabs>
+    <!-- START : DELETE modal -->
+    <b-modal ref="deleteProductModal" title="Delete Product" @hide="closeDeleteModal"
+        hide-footer hide-backdrop header-class="border-primary"
+        static-class="st-c2c-dashboard" static>
+        <form>
+            <div class="p-3 text-center">
+                <p>Are you sure you wish to remove this record?</p>
             </div>
-          </div>
-        </div>
-      </div>
-      <div class="d-flex justify-content-center">
-        <b-spinner
-          v-if="pending_products_loading"
-          type="grow"
-          label="Spinning"
-        ></b-spinner>
-      </div>
-      <div
-        v-if="pendingApprovalProducts.length === 0 && !pending_products_loading"
-        class="d-flex justify-content-center"
-      >
-        <p>No listing found</p>
-      </div>
-    </b-tab>
-  </b-tabs>
-  <!-- START : DELETE modal -->
-  <b-modal
-    ref="deleteProductModal"
-    title="Delete Product"
-    @hide="closeDeleteModal"
-    hide-footer
-    hide-backdrop
-    header-class="border-primary"
-    static-class="st-c2c-dashboard"
-    static
-  >
-    <form>
-      <div class="p-3 text-center">
-        <p>Are you sure you wish to remove this record?</p>
-      </div>
-      <b-modal-footer
-        class="d-flex align-items-center justify-content-center"
-        style="gap: 10px;"
-      >
-        <b-button variant="primary" @click="closeDeleteModal">Close</b-button>
-        <b-button
-          class="text-white"
-          variant="danger"
-          @click="deleteProduct"
-          id="deleteproduct_btn"
-          >Delete</b-button
-        >
-      </b-modal-footer>
-    </form>
-  </b-modal>
-  <b-modal
-    ref="deletePendingApprovalProductModal"
-    title="Delete Product"
-    @hide="closeDeletePendingApprovalProductModal"
-    hide-footer
-    hide-backdrop
-    header-class="border-primary"
-    static-class="st-c2c-dashboard"
-    static
-  >
-    <form>
-      <div class="p-3 text-center">
-        <p>Are you sure you wish to remove this record?</p>
-      </div>
-      <b-modal-footer
-        class="d-flex align-items-center justify-content-center"
-        style="gap: 10px;"
-      >
-        <b-button
-          variant="primary"
-          @click="closeDeletePendingApprovalProductModal"
-          >Close</b-button
-        >
-        <b-button
-          class="text-white"
-          variant="danger"
-          @click="deleteProduct('pendingApproval')"
-          id="deleteproduct_btn"
-          >Delete</b-button
-        >
-      </b-modal-footer>
-    </form>
-  </b-modal>
-  <!-- END : DELETE modal -->
+            <b-modal-footer class="d-flex align-items-center justify-content-center" style="gap: 10px;">
+                <b-button variant="primary" @click="closeDeleteModal">Close</b-button>
+                <b-button class="text-white" variant="danger" @click="deleteProduct" id="deleteproduct_btn">Delete</b-button>
+            </b-modal-footer>
+        </form>
+    </b-modal>
+    <b-modal ref="deletePendingApprovalProductModal" title="Delete Product" @hide="closeDeletePendingApprovalProductModal"
+        hide-footer hide-backdrop header-class="border-primary"
+        static-class="st-c2c-dashboard" static>
+        <form>
+            <div class="p-3 text-center">
+                <p>Are you sure you wish to remove this record?</p>
+            </div>
+            <b-modal-footer class="d-flex align-items-center justify-content-center" style="gap: 10px;">
+                <b-button variant="primary" @click="closeDeletePendingApprovalProductModal">Close</b-button>
+                <b-button class="text-white" variant="danger" @click="deleteProduct('pendingApproval')" id="deleteproduct_btn">Delete</b-button>
+            </b-modal-footer>
+        </form>
+    </b-modal>
+    <!-- END : DELETE modal -->
 </div>
