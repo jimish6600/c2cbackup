@@ -1311,6 +1311,12 @@ window.onload = function () {
       updateProductBookingType(value) {
         this.productData.rental_rule_id = value;
         this.markProductFieldAsUpdated('rental_rule_id');
+        this.productData.requires_shipping = false;
+        this.markProductFieldAsUpdated('requires_shipping');
+      },
+      updateProductRequireShipping(value) {
+        this.productData.requires_shipping = value;
+        this.markProductFieldAsUpdated('requires_shipping');
       },
       updateProductPrice(value) {
         if (this.firstVariant) {
@@ -3129,6 +3135,7 @@ window.onload = function () {
         let params = new FormData();
         params.set('paypal_email', this.paypal_email);
         params.set('slug', this.userData?.company?.slug);
+        params.set('company_id', this.userData?.company_id);
         const headers = this.getAuthHeaders();
         try {
           await axios.post(`${this.baseUrl}/v1/update-paypal-email`, params, {
