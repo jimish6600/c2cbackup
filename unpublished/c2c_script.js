@@ -1,5 +1,6 @@
 <script type="module">
 window.onload = function () {
+  console.log('Hello');
   Vue.use(Vuetable);
   Vue.use(Vuetable.VuetablePagination);
   Dropzone.autoDiscover = false;
@@ -3701,4 +3702,5 @@ window.onload = function () {
     delimiters: ['%%', '%%'],
   });
 };
+
 </script>
