@@ -17,18 +17,17 @@ window.onload = function () {
           document.getElementById('customer_email').value,
         shop_domain: Shopify.shop,
         contact_name: document.getElementById('customer_contact_name').value,
-        baseUrl: 'https://api-v2.shipturtle.com/api',
+        baseUrl: 'https://api.beta.shipturtle.app/api',
         moduleItem: {},
         allPermissions: null,
         userData: null,
         statesLoading: false,
         countriesLoading: false,
+        soldProducts: [],
+        soldProductsCount: 0,
+        sold_products_loading: false,
+        isViewOnlyProductsPage: false,
         isStateMandatory: true,
-        localUpdatedFields: {
-          variants: [],
-          meta_data: [],
-          options: [],
-        },
         translations: {
           en: {
             menu: {
@@ -40,6 +39,7 @@ window.onload = function () {
               Offers: 'Offers',
               Auction: 'Auction',
               Booking: 'Booking',
+              'items-sold': 'Items Sold',
             },
             orders: {
               all: 'All',
@@ -225,14 +225,9 @@ window.onload = function () {
           width: '',
           height: '',
           weight: '',
-          category: {
-            category_title: '',
-            category_id: 0,
-          },
+          category: '',
           product_type: '',
           rental_rule_id: null,
-          product_type_id: 0,
-          vendor_id: 0,
           images: [],
           old_videos: [],
           videos: [],
@@ -284,7 +279,7 @@ window.onload = function () {
           value: null,
         },
         metaFieldDropZoneOptions: {
-          url: 'https://api-v2.shipturtle.com/api/v1/save-temp-files',
+          url: 'https://api.beta.shipturtle.app/api/v1/save-temp-files',
           thumbnailHeight: 200,
           maxFilesize: 200,
           previewTemplate: `<div class="dz-preview dz-file-preview mb-3">
@@ -324,7 +319,7 @@ window.onload = function () {
           removeType: 'server',
         },
         dropzoneOptions: {
-          url: 'https://api-v2.shipturtle.com/api/v1/save-temp-files',
+          url: 'https://api.beta.shipturtle.app/api/v1/save-temp-files',
           thumbnailHeight: 200,
           maxFilesize: 200,
           previewTemplate: `<div class="dz-preview dz-file-preview mb-3">
@@ -679,32 +674,17 @@ window.onload = function () {
         });
       },
 
-      getDefaultUpdatedFields() {
-        return {
-          variants: [],
-          meta_data: [],
-          options: [],
-        };
-      },
-
-      markProductFieldAsUpdated(field) {
-        this.localUpdatedFields[field] = true;
-      },
-
-      markMetafieldsAsUpdated(slug) {
-        const temp = {};
-        temp[slug] = true;
-        this.localUpdatedFields.meta_data.push(temp);
-      },
-
       /* General */
       hasPermission(permission, module = null) {
-        if (module !== null) {
-          if (!this.moduleItem || !(module in this.moduleItem)) {
-            return false;
-          }
+        if (
+          (this.moduleItem && this.moduleItem.includes(module)) ||
+          module == null
+        ) {
+          return (
+            this.allPermissions && this.allPermissions.includes(permission)
+          );
         }
-        return this.allPermissions && this.allPermissions.includes(permission);
+        return false;
       },
       showToast(message, type = 'success') {
         const toaster = document.getElementById('custom-toaster');
@@ -764,6 +744,7 @@ window.onload = function () {
           this.fetchCategories();
           this.fetchActiveProducts('pageOpened');
           this.fetchPendingApprovalProducts();
+          this.fetchSoldProducts();
         }
         if (pageName === 'Booking') {
           this.currentPage = 'Booking';
@@ -798,6 +779,7 @@ window.onload = function () {
           window.history.pushState({ path: newUrl }, '', newUrl);
           this.isEditProductsPage = true;
           this.currentPage = 'listing';
+          this.isViewOnlyProductsPage = false;
           this.resetListingForm();
           this.fetchCategories();
           this.openEditProduct(data, productType || productTypeParam);
@@ -807,11 +789,25 @@ window.onload = function () {
           this.fetchBookingTypes();
           this.isEditProductsPage = false;
           this.resetListingForm();
-          this.productData.vendor_id = this.userData.company_id;
+          this.isViewOnlyProductsPage = false; 
           this.currentPage = 'listing';
           this.fetchCategories();
           this.setCustomField();
         }
+if (pageName === 'viewListing') {
+    const resolvedId = id || data?.id || data?.product_id;
+    const newUrl = this.buildDashboardUrl(pageName, {
+        id: resolvedId,
+        productType: productTypeParam || productType,
+    });
+    window.history.pushState({ path: newUrl }, '', newUrl);
+    this.isEditProductsPage = true;
+    this.isViewOnlyProductsPage = true;
+    this.resetListingForm();
+    this.currentPage = 'listing';
+    this.fetchCategories();
+    this.openEditProduct({ ...data, id: resolvedId }, productType || productTypeParam);
+}
         if (pageName === 'Barter') {
           this.fetchBarters();
         }
@@ -846,12 +842,6 @@ window.onload = function () {
           this.firstVariant = null;
           this.openPage('MyProducts');
         }
-      },
-
-      handleTabChange(prevIndex, nextIndex) {
-        this.$nextTick(() => {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        });
       },
 
       /* Data Table */
@@ -920,8 +910,6 @@ window.onload = function () {
               file.uuid === imageObject.uuid
             );
           });
-
-          this.markProductFieldAsUpdated('images');
         }
         if (file.type.includes('video')) {
           this.productData.old_videos = this.productData.display_videos.filter(
@@ -932,10 +920,28 @@ window.onload = function () {
               );
             },
           );
-
-          this.markProductFieldAsUpdated('videos');
         }
       },
+      async fetchSoldProducts() {
+    try {
+        this.sold_products_loading = true;
+        const response = await axios.get(
+            `${this.baseUrl}/v1/customer-to-customer/products-sold?limit=25&ascending=0&page=1`,
+            {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('stAuth')}`,
+                },
+            }
+        );
+        this.soldProducts = response.data.data || [];
+        this.soldProductsCount = response.data.count || 0;
+    } catch (error) {
+        console.error('Error fetching sold products:', error);
+        this.showToast('Error while fetching sold products', 'failure');
+    } finally {
+        this.sold_products_loading = false;
+    }
+},
       manuallyAddFile(file) {
         this.productData.images.push(file);
       },
@@ -984,8 +990,6 @@ window.onload = function () {
             name: file.name,
             type: file.type,
           });
-
-          this.markProductFieldAsUpdated('images');
         }
         if (file.type.includes('video')) {
           this.productData.videos.push({
@@ -996,8 +1000,6 @@ window.onload = function () {
             type: file.type,
             id: response.data.id,
           });
-
-          this.markProductFieldAsUpdated('videos');
         }
       },
       imageUploadInProgress(isUploading) {
@@ -1155,10 +1157,7 @@ window.onload = function () {
             });
           this.categoryOptions = response.data.data.map((category) => ({
             text: category.title,
-            value: {
-              category_title: category.title,
-              category_id: category.id,
-            },
+            value: category.title,
           }));
         } catch (error) {
           console.error('Error fetching categories:', error);
@@ -1274,15 +1273,9 @@ window.onload = function () {
         const headers = {
           Authorization: `Bearer ${localStorage.getItem('stAuth')}`,
         };
-        const params = {
-          vendor_id: this.productData.vendor_id,
-          ...(this.productData.category.category_id !== 0 && {
-            category_id: this.productData.category.category_id,
-          }),
-        };
         const customFieldResponse = await axios.get(
-          `${this.baseUrl}/v1/custom-fields/get-fields-with-relations`,
-          { headers, params },
+          `${this.baseUrl}/v1/custom-fields/get-fields`,
+          { headers },
         );
 
         this.customFields = customFieldResponse.data.map((customField) => {
@@ -1297,27 +1290,21 @@ window.onload = function () {
       },
       updateProductTitle(value) {
         this.productData.title = value.trim();
-        this.markProductFieldAsUpdated('title');
       },
       updateProductDescription(value) {
         this.productData.description = value;
-        this.markProductFieldAsUpdated('body_html');
       },
       updateProductCategory(value) {
         this.productData.category = value;
-        this.markProductFieldAsUpdated('product_type');
-        this.setCustomField();
       },
       updateProductBookingType(value) {
         this.productData.rental_rule_id = value;
-        this.markProductFieldAsUpdated('rental_rule_id');
       },
       updateProductPrice(value) {
         if (this.firstVariant) {
           this.firstVariant.price = value;
         } else {
           this.productData.price = value;
-          this.markProductFieldAsUpdated('price');
         }
       },
       formatDecimalInput(value) {
@@ -1354,14 +1341,12 @@ window.onload = function () {
         } else {
           this.productData[field] = formattedValue;
         }
-        this.markProductFieldAsUpdated(field);
       },
       updateProductQuantity(value) {
         if (this.firstVariant) {
           this.firstVariant.inventory_quantity = value;
         }
         this.productData.quantity = value;
-        this.markProductFieldAsUpdated('inventory_quantity');
       },
       setProductData(data) {
         if (data.variants && data.variants.length > 0) {
@@ -1388,9 +1373,7 @@ window.onload = function () {
         this.productData.weight = this.firstVariant
           ? this.firstVariant.weight
           : data.weight;
-        this.productData.vendor_id = data.vendor_id;
-        this.productData.category.category_title = data.product_type;
-        this.productData.category.category_id = data.product_type_id;
+        this.productData.category = data.product_type;
         this.productData.product_type = data.product_type;
         this.images = data.images;
         this.display_videos = data.videos;
@@ -1495,8 +1478,6 @@ window.onload = function () {
             this.metaData[item.name_slug]['namespace'] = 'shipturtle_product';
           }
         }
-
-        this.markMetafieldsAsUpdated(item.name_slug);
       },
       popoverMethodForCommission(productTitle, commission, currency, earnings) {
         return (
@@ -1538,12 +1519,8 @@ window.onload = function () {
           width: '',
           height: '',
           weight: '',
+          category: '',
           rental_rule_id: null,
-          category: {
-            category_title: '',
-            category_id: 0,
-          },
-          vendor_id: 0,
           images: [],
           videos: [],
           display_videos: [],
@@ -1596,14 +1573,7 @@ window.onload = function () {
               this.userData.default_shop &&
               this.userData.default_shop.weight_unit,
           );
-          formData.append(
-            'product_type',
-            this.productData.category.category_title,
-          );
-          formData.append(
-            'product_type_id',
-            this.productData.category.category_id,
-          );
+          formData.append('product_type', this.productData.category);
           formData.append(
             'shop_id',
             this.userData &&
@@ -1614,7 +1584,6 @@ window.onload = function () {
             'vendor',
             this.userData && this.userData.company.title,
           );
-          formData.append('vendor_id', this.userData.company_id);
           formData.append('images', JSON.stringify(this.images));
           formData.append('videos', JSON.stringify(this.productData.videos));
           formData.append('meta_data', JSON.stringify({ ...this.metaData }));
@@ -1711,15 +1680,7 @@ window.onload = function () {
             'product_type',
             this.productData.category.label
               ? this.productData.category.label
-              : this.productData.category.category_title,
-          );
-          formData.append(
-            'product_type_id',
-            this.productData.category.category_id,
-          );
-          formData.append(
-            'vendor_id',
-            this.productData.vendor_id || this.userData.company_id,
+              : this.productData.category,
           );
           formData.append('status', this.productData.status);
           formData.append(
@@ -1761,7 +1722,13 @@ window.onload = function () {
           formData.set('merchant_comments', this.productData.merchant_comments);
           formData.set(
             'updated_fields',
-            JSON.stringify(this.localUpdatedFields),
+            JSON.stringify({
+              variants: [],
+              meta_data: [],
+              options: [],
+              title: true,
+              price: true,
+            }),
           );
           formData.append('inventory_management', true);
 
@@ -1818,7 +1785,7 @@ window.onload = function () {
         const searchParams = new URLSearchParams(window.location.search);
         const productId = searchParams.get('id');
         this.productType = productType;
-        this.editProductId = productData?.id || productId;
+        this.editProductId = productData?.id || productData?.product_id || productId;
         this.loading = true;
 
         const headers = {
@@ -1859,20 +1826,11 @@ window.onload = function () {
       nextStep() {
         this.$refs.wizard.next();
       },
-      clearError(field) {
-        if (this.addEditProductErrors[field]) {
-          Vue.delete(this.addEditProductErrors, field);
-        }
-      },
       validateStep(step) {
         this.addEditProductErrors = {};
 
         if (step === 1) {
           this.validateStepOne();
-        }
-
-        if (step === 2) {
-          this.validateStepTwo();
         }
 
         if (step === 3) {
@@ -1882,85 +1840,26 @@ window.onload = function () {
         return Object.keys(this.addEditProductErrors).length === 0;
       },
       validateStepOne() {
-        const configurations = this.userData?.company?.configurations || {};
-
-        if (this.hasPermission('can_product_view_title')) {
-          if (!this.productData.title) {
-            this.addEditProductErrors['title'] = 'Title is required';
-          }
-        }
-
-        if (this.hasPermission('can_product_view_description')) {
+        for (const [field, message] of Object.entries(this.requiredFields)) {
           if (
-            configurations.is_description_mandatory &&
-            !this.productData.description
+            field === 'images' &&
+            (!this.images || this.images.length === 0)
           ) {
-            this.addEditProductErrors['description'] =
-              'Description is required';
+            this.addEditProductErrors['images'] = 'Image is required';
+            continue;
           }
-        }
-
-        if (this.hasPermission('can_product_view_price')) {
-          if (configurations.is_price_mandatory) {
-            if (!this.productData.price || this.productData.price === 0) {
-              this.addEditProductErrors['price'] =
-                'Price must be greater than 0';
-            }
+          if (field === 'price' && this.productData[field] === 0) {
+            this.addEditProductErrors[field] = 'Price Must be greater than 0';
+            continue;
           }
-        }
-
-        if (this.hasPermission('can_product_view_quantity')) {
-          if (configurations.is_quantity_mandatory) {
-            if (!this.productData.quantity && this.productData.quantity !== 0) {
-              this.addEditProductErrors['quantity'] = 'Quantity is required';
-            }
-          }
-        }
-
-        if (this.hasPermission('can_product_view_media')) {
-          if (configurations.is_media_mandatory) {
-            if (!this.images || this.images.length === 0) {
-              this.addEditProductErrors['image'] = 'Image is required';
-            }
-          }
-        }
-
-        return Object.keys(this.addEditProductErrors).length === 0;
-      },
-      validateStepTwo() {
-        if (!this.hasPermission('can_product_view_weight_dimension')) {
-          return true;
-        }
-
-        const configurations = this.userData?.company?.configurations || {};
-
-        if (!configurations.is_weight_dimension_mandatory) {
-          return true;
-        }
-
-        const dimensionFields = {
-          length: 'Length is required',
-          width: 'Width is required',
-          height: 'Height is required',
-          weight: 'Weight is required',
-        };
-
-        Object.entries(dimensionFields).forEach(([field, message]) => {
-          const value = this.firstVariant
-            ? this.firstVariant[field]
-            : this.productData[field];
-          if (!value && value !== 0) {
+          if (!this.productData[field]) {
             this.addEditProductErrors[field] = message;
           }
-        });
+        }
 
         return Object.keys(this.addEditProductErrors).length === 0;
       },
       validateStepThree() {
-        if (!this.hasPermission('can_product_view_meta_data')) {
-          return true;
-        }
-
         if (this.mandatoryCustomFields.length > 0) {
           this.mandatoryCustomFields.forEach((element) => {
             if (!this.metaData[element.name_slug]?.value) {
@@ -1969,7 +1868,6 @@ window.onload = function () {
             }
           });
         }
-        return Object.keys(this.addEditProductErrors).length === 0;
       },
       validateCustomFields() {
         for (const customField of this.userSelectedCustomFields) {
@@ -3694,4 +3592,5 @@ window.onload = function () {
     delimiters: ['%%', '%%'],
   });
 };
+
 </script>
