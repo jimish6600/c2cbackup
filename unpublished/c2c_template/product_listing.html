@@ -4,7 +4,7 @@
   >
     <div class="listing_title_container pr-0 pl-0">
       <h3 class="m-0">
-        My Listings (%%activeProductsCount + pendingApprovalProductsCount %%)
+        Your Listings(%%activeProductsCount + pendingApprovalProductsCount %%)
       </h3>
     </div>
     <div
@@ -189,6 +189,70 @@
         class="d-flex justify-content-center"
       >
         <p>No listing found</p>
+      </div>
+    </b-tab>
+    <b-tab @click="fetchSoldProducts">
+      <template slot="title">
+        <div class="d-flex align-items-center gap-1">
+          <b-spinner
+            small
+            v-if="sold_products_loading"
+            class="product_tab_spinner"
+            variant="light"
+          ></b-spinner>
+          %%currentLanguage.menu['items-sold']%% (%%soldProductsCount%%)
+        </div>
+      </template>
+      <div>
+        <div class="product-cards-container">
+          <div
+            class="product-card d-flex flex-column"
+            v-for="item in soldProducts"
+            :key="item.product_id"
+          >
+            <div class="product-card-img">
+              <img
+                :src="item.images && item.images.length > 0 ? item.images[0].src : 'https://www.freeiconspng.com/thumbs/no-image-icon/no-image-icon-15.png'"
+                alt="Image"
+              />
+            </div>
+            <div
+              class="product-card-details d-flex flex-column justify-content-between flex-grow-1 text-center"
+            >
+              <div>
+                <h3 class="font-weight-normal text-uppercase">
+                  %%item.title%%
+                </h3>
+                <p class="m-0" v-if="item.price">
+                  %%currencySymbol%% %%item.price%%
+                </p>
+              </div>
+              <div
+                class="d-flex flex-column flex-sm-row mt-5 c2c-product-action-container"
+              >
+                <a
+                  class="card-action-btn edit"
+                  href="#"
+                  @click.prevent="openPage('viewListing', item, 'soldProducts')"
+                  >View</a
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="d-flex justify-content-center">
+        <b-spinner
+          v-if="sold_products_loading"
+          type="grow"
+          label="Spinning"
+        ></b-spinner>
+      </div>
+      <div
+        v-if="soldProducts.length === 0 && !sold_products_loading"
+        class="d-flex justify-content-center"
+      >
+        <p>No sold products found</p>
       </div>
     </b-tab>
   </b-tabs>
